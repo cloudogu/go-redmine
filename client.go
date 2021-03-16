@@ -1,12 +1,14 @@
 package redmine
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/pkg/errors"
 	"io"
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 )
 
 type Client struct {
@@ -23,6 +25,18 @@ const (
 	AuthTypeTokenQueryParam
 	AuthTypeBasicAuthWithTokenPassword
 	AuthTypeNoAuth
+)
+
+const (
+	httpMethodGet    = "GET"
+	httpMethodPost   = "POST"
+	httpMethodPut    = "PUT"
+	httpMethodDelete = "DELETE"
+)
+
+const (
+	httpHeaderContentType          = "Content-Type"
+	httpContentTypeApplicationJson = "application/json"
 )
 
 var DefaultLimit int = NoSetting
@@ -82,7 +96,7 @@ func NewClient(endpoint string, auth APIAuth) (*Client, error) {
 }
 
 func (c *Client) authenticatedGet(urlWithoutAuthInfo string) (req *http.Request, err error) {
-	return c.authenticatedRequest("GET", urlWithoutAuthInfo, nil)
+	return c.authenticatedRequest(httpMethodGet, urlWithoutAuthInfo, nil)
 }
 
 func (c *Client) authenticatedRequest(method string, urlWithoutAuthInfo string, body io.Reader) (req *http.Request, err error) {
@@ -188,6 +202,33 @@ func (c *Client) getPaginationClauseParams() []keyValue {
 		queryParams = append(queryParams, keyValue{key: "offset", value: strconv.Itoa(c.Offset)})
 	}
 	return queryParams
+}
+
+func decodeHTTPError(res *http.Response) error {
+	var er errorsResult
+	err := json.NewDecoder(res.Body).Decode(&er)
+	if err == nil {
+		return errors.New(strings.Join(er.Errors, "\n"))
+	}
+	return errors.Wrapf(err, "HTTP %s", res.Status)
+}
+
+func isHTTPStatusSuccessful(httpStatus int, acceptedStatuses []int) bool {
+	for _, acceptedStatus := range acceptedStatuses {
+		if httpStatus == acceptedStatus {
+			return true
+		}
+	}
+
+	return false
+}
+
+func jsonResourceEndpointByID(baseURL, resourceName string, entityID int) string {
+	return fmt.Sprintf("%s/%s/%d.json", baseURL, resourceName, entityID)
+}
+
+func jsonResourceEndpoint(baseURL, resourceName string) string {
+	return fmt.Sprintf("%s/%s.json", baseURL, resourceName)
 }
 
 type errorsResult struct {

@@ -89,7 +89,7 @@ func (c *Client) CreateIssueRelation(issueRelation IssueRelation) (*IssueRelatio
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequest("POST", c.endpoint+"/relations.json?"+c.apiKeyParameter(), strings.NewReader(string(s)))
+	req, err := http.NewRequest(httpMethodPost, c.endpoint+"/relations.json?"+c.apiKeyParameter(), strings.NewReader(string(s)))
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +124,7 @@ func (c *Client) UpdateIssueRelation(issueRelation IssueRelation) error {
 	if err != nil {
 		return err
 	}
-	req, err := http.NewRequest("PUT", c.endpoint+"/relations/"+strconv.Itoa(issueRelation.Id)+".json?"+c.apiKeyParameter(), strings.NewReader(string(s)))
+	req, err := http.NewRequest(httpMethodPut, c.endpoint+"/relations/"+strconv.Itoa(issueRelation.Id)+".json?"+c.apiKeyParameter(), strings.NewReader(string(s)))
 	if err != nil {
 		return err
 	}
@@ -153,7 +153,7 @@ func (c *Client) UpdateIssueRelation(issueRelation IssueRelation) error {
 }
 
 func (c *Client) DeleteIssueRelation(id int) error {
-	req, err := http.NewRequest("DELETE", c.endpoint+"/relations/"+strconv.Itoa(id)+".json?"+c.apiKeyParameter(), strings.NewReader(""))
+	req, err := http.NewRequest(httpMethodDelete, c.endpoint+"/relations/"+strconv.Itoa(id)+".json?"+c.apiKeyParameter(), strings.NewReader(""))
 	if err != nil {
 		return err
 	}

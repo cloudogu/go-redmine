@@ -11,13 +11,6 @@ import (
 	"testing"
 )
 
-const (
-	urlSimple                  = "http://localhost/endpoint"
-	urlWithPort                = "http://localhost:3000/endpoint"
-	urlWithPortContextPath     = "http://localhost:3000/endpoint"
-	urlWithPortPathQueryParams = "http://localhost:3000/endpoint?key=value&key=doublevalue&important_id=2&specialCharacter=äöüß+àÀ%20."
-)
-
 func TestAPIAuth_validate(t *testing.T) {
 	type fields struct {
 		AuthType AuthType
@@ -124,8 +117,8 @@ func TestSafelyAddQueryParameter_requestSafety(t *testing.T) {
 		postReader := strings.NewReader(string(s))
 		expectedReaderLen := postReader.Len()
 
-		sutGET, _ := http.NewRequest("GET", "http://1.2.3.4:3030/endpoint?getAddInfo=true", nil)
-		sutPOST, _ := http.NewRequest("POST", "http://1.2.3.4:3030/endpoint?doTheThingDifferently", postReader)
+		sutGET, _ := http.NewRequest(httpMethodGet, "http://1.2.3.4:3030/endpoint?getAddInfo=true", nil)
+		sutPOST, _ := http.NewRequest(httpMethodPost, "http://1.2.3.4:3030/endpoint?doTheThingDifferently", postReader)
 
 		// when
 		getErr := safelyAddQueryParameter(sutGET, "key", "value")
@@ -133,12 +126,12 @@ func TestSafelyAddQueryParameter_requestSafety(t *testing.T) {
 
 		// then
 		require.NoError(t, getErr)
-		assert.Equal(t, "GET", sutGET.Method)
+		assert.Equal(t, httpMethodGet, sutGET.Method)
 		assert.Nil(t, sutGET.Body)
 		assert.Contains(t, sutGET.URL.String(), "http://1.2.3.4:3030/endpoint?")
 
 		require.NoError(t, postErr)
-		assert.Equal(t, "POST", sutPOST.Method)
+		assert.Equal(t, httpMethodPost, sutPOST.Method)
 		assert.NotNil(t, postReader)
 		assert.Equal(t, expectedReaderLen, postReader.Len())
 		assert.Contains(t, sutPOST.URL.String(), "http://1.2.3.4:3030/endpoint?")
@@ -215,7 +208,7 @@ func TestClient_getPaginationClauseAsKV(t *testing.T) {
 func reqFromURL(t *testing.T, params string) *http.Request {
 	t.Helper()
 
-	req, err := http.NewRequest("GET", "http://1.2.3.4:3030/endpoint"+params, nil)
+	req, err := http.NewRequest(httpMethodGet, "http://1.2.3.4:3030/endpoint"+params, nil)
 	assert.NoError(t, err)
 
 	return req

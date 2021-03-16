@@ -15,7 +15,7 @@ type customFieldsResult struct {
 // CustomFields consulta los campos personalizados
 func (c *Client) CustomFields() ([]CustomField, error) {
 	req, err := http.NewRequest(
-		"GET",
+		httpMethodGet,
 		fmt.Sprintf("%s/custom_fields.json?%s",
 			c.endpoint,
 			c.getPaginationClause()),

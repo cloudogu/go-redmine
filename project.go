@@ -2,17 +2,11 @@ package redmine
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	errors2 "github.com/pkg/errors"
 	"net/http"
 	"strconv"
 	"strings"
-)
-
-const (
-	httpHeaderContentType          = "Content-Type"
-	httpContentTypeApplicationJson = "application/json"
 )
 
 type projectRequest struct {
@@ -129,7 +123,7 @@ func (c *Client) CreateProject(project Project) (*Project, error) {
 	}
 
 	url := jsonResourceEndpoint(c.endpoint, "projects")
-	req, err := c.authenticatedRequest("POST", url, strings.NewReader(string(s)))
+	req, err := c.authenticatedRequest(httpMethodPost, url, strings.NewReader(string(s)))
 	if err != nil {
 		return nil, errors2.Wrapf(err, "error while creating POST request for project %s ", project.Identifier)
 	}
@@ -161,7 +155,7 @@ func (c *Client) UpdateProject(project Project) error {
 	}
 
 	url := jsonResourceEndpointByID(c.endpoint, "projects", project.Id)
-	req, err := c.authenticatedRequest("PUT", url, strings.NewReader(string(s)))
+	req, err := c.authenticatedRequest(httpMethodPut, url, strings.NewReader(string(s)))
 	if err != nil {
 		return errors2.Wrapf(err, "error while creating PUT request for project %d ", project.Id)
 	}
@@ -184,9 +178,9 @@ func (c *Client) UpdateProject(project Project) error {
 
 func (c *Client) DeleteProject(id int) error {
 	url := jsonResourceEndpointByID(c.endpoint, "projects", id)
-	req, err := c.authenticatedRequest("DELETE", url, strings.NewReader(""))
+	req, err := c.authenticatedRequest(httpMethodDelete, url, strings.NewReader(""))
 	if err != nil {
-		return errors2.Wrapf(err, "error while creating DELETE for project %d ", id)
+		return errors2.Wrapf(err, "error while creating DELETE request for project %d ", id)
 	}
 
 	req.Header.Set(httpHeaderContentType, httpContentTypeApplicationJson)
@@ -205,31 +199,4 @@ func (c *Client) DeleteProject(id int) error {
 	}
 
 	return nil
-}
-
-func decodeHTTPError(res *http.Response) error {
-	var er errorsResult
-	err := json.NewDecoder(res.Body).Decode(&er)
-	if err == nil {
-		return errors.New(strings.Join(er.Errors, "\n"))
-	}
-	return errors2.Wrapf(err, "HTTP %s", res.Status)
-}
-
-func isHTTPStatusSuccessful(httpStatus int, acceptedStatuses []int) bool {
-	for _, acceptedStatus := range acceptedStatuses {
-		if httpStatus == acceptedStatus {
-			return true
-		}
-	}
-
-	return false
-}
-
-func jsonResourceEndpointByID(baseURL, resourceName string, entityID int) string {
-	return fmt.Sprintf("%s/%s/%d.json", baseURL, resourceName, entityID)
-}
-
-func jsonResourceEndpoint(baseURL, resourceName string) string {
-	return fmt.Sprintf("%s/%s.json", baseURL, resourceName)
 }

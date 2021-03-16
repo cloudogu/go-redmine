@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	errors2 "github.com/pkg/errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -141,11 +142,11 @@ func (c *Client) CreateIssue(issue Issue) (*Issue, error) {
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequest("POST", c.endpoint+"/issues.json?"+c.apiKeyParameter(), strings.NewReader(string(s)))
+	req, err := http.NewRequest(httpMethodPost, c.endpoint+"/issues.json?"+c.apiKeyParameter(), strings.NewReader(string(s)))
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(httpHeaderContentType, httpContentTypeApplicationJson)
 	res, err := c.Do(req)
 	if err != nil {
 		return nil, err
@@ -176,11 +177,11 @@ func (c *Client) UpdateIssue(issue Issue) error {
 	if err != nil {
 		return err
 	}
-	req, err := http.NewRequest("PUT", c.endpoint+"/issues/"+strconv.Itoa(issue.Id)+".json?"+c.apiKeyParameter(), strings.NewReader(string(s)))
+	req, err := http.NewRequest(httpMethodPut, c.endpoint+"/issues/"+strconv.Itoa(issue.Id)+".json?"+c.apiKeyParameter(), strings.NewReader(string(s)))
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(httpHeaderContentType, httpContentTypeApplicationJson)
 	res, err := c.Do(req)
 	if err != nil {
 		return err
@@ -191,25 +192,18 @@ func (c *Client) UpdateIssue(issue Issue) error {
 		return fmt.Errorf("could not update issue (id: %d) because it was not found", issue.Id)
 	}
 	if !isHTTPStatusSuccessful(res.StatusCode, []int{http.StatusOK, http.StatusNoContent}) {
-		decoder := json.NewDecoder(res.Body)
-		var er errorsResult
-		err = decoder.Decode(&er)
-		if err == nil {
-			err = errors.New(strings.Join(er.Errors, "\n"))
-		}
+		return errors2.Wrapf(decodeHTTPError(res), "error while deleting issue %d", issue.Id)
 	}
-	if err != nil {
-		return err
-	}
-	return err
+
+	return nil
 }
 
 func (c *Client) DeleteIssue(id int) error {
-	req, err := http.NewRequest("DELETE", c.endpoint+"/issues/"+strconv.Itoa(id)+".json?"+c.apiKeyParameter(), strings.NewReader(""))
+	req, err := http.NewRequest(httpMethodDelete, c.endpoint+"/issues/"+strconv.Itoa(id)+".json?"+c.apiKeyParameter(), strings.NewReader(""))
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(httpHeaderContentType, httpContentTypeApplicationJson)
 	res, err := c.Do(req)
 	if err != nil {
 		return err
@@ -220,15 +214,11 @@ func (c *Client) DeleteIssue(id int) error {
 		return fmt.Errorf("could not delete issue (id: %d) because it was not found", id)
 	}
 
-	decoder := json.NewDecoder(res.Body)
 	if !isHTTPStatusSuccessful(res.StatusCode, []int{http.StatusOK, http.StatusNoContent}) {
-		var er errorsResult
-		err = decoder.Decode(&er)
-		if err == nil {
-			err = errors.New(strings.Join(er.Errors, "\n"))
-		}
+		return errors2.Wrapf(decodeHTTPError(res), "error while deleting issue %d", id)
 	}
-	return err
+
+	return nil
 }
 
 func (issue *Issue) GetTitle() string {
@@ -323,17 +313,12 @@ func getOneIssue(c *Client, id int, args map[string]string) (*Issue, error) {
 		return nil, fmt.Errorf("issue (id: %d) was not found", id)
 	}
 
-	decoder := json.NewDecoder(res.Body)
-	var r issueRequest
-	if res.StatusCode != 200 {
-		var er errorsResult
-		err = decoder.Decode(&er)
-		if err == nil {
-			err = errors.New(strings.Join(er.Errors, "\n"))
-		}
-	} else {
-		err = decoder.Decode(&r)
+	if !isHTTPStatusSuccessful(res.StatusCode, []int{http.StatusOK}) {
+		return nil, errors2.Wrapf(decodeHTTPError(res), "error while reading issue %d", id)
 	}
+
+	var r issueResult
+	err = json.NewDecoder(res.Body).Decode(&r)
 	if err != nil {
 		return nil, err
 	}
@@ -348,17 +333,12 @@ func getIssue(c *Client, url string, offset int) (*issuesResult, error) {
 	}
 	defer res.Body.Close()
 
-	decoder := json.NewDecoder(res.Body)
 	var r issuesResult
-	if res.StatusCode != 200 {
-		var er errorsResult
-		err = decoder.Decode(&er)
-		if err == nil {
-			err = errors.New(strings.Join(er.Errors, "\n"))
-		}
-	} else {
-		err = decoder.Decode(&r)
+	if !isHTTPStatusSuccessful(res.StatusCode, []int{http.StatusOK}) {
+		return nil, errors2.Wrapf(decodeHTTPError(res), "error while reading issue, URL: %s", url+"&offset="+strconv.Itoa(offset))
 	}
+
+	err = json.NewDecoder(res.Body).Decode(&r)
 	if err != nil {
 		return nil, err
 	}
@@ -370,7 +350,7 @@ func getIssues(c *Client, url string) ([]Issue, error) {
 	completed := false
 	var issues []Issue
 
-	for completed == false {
+	for !completed {
 		r, err := getIssue(c, url, len(issues))
 
 		if err != nil {

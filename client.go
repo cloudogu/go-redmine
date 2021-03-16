@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"strings"
 )
 
 type Client struct {
@@ -148,17 +147,6 @@ func safelyAddQueryParameters(req *http.Request, kvs []keyValue) error {
 
 func (c *Client) apiKeyParameter() string {
 	return "key=" + c.auth.Token
-}
-
-func (c *Client) concatParameters(requestParameters ...string) string {
-	cleanedParams := []string{}
-	for _, param := range requestParameters {
-		if param != "" {
-			cleanedParams = append(cleanedParams, param)
-		}
-	}
-
-	return strings.Join(cleanedParams, "&")
 }
 
 // URLWithFilter return string url by concat endpoint, path and filter

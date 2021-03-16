@@ -10,6 +10,11 @@ import (
 	"strings"
 )
 
+const (
+	httpHeaderContentType          = "Content-Type"
+	httpContentTypeApplicationJson = "application/json"
+)
+
 type projectRequest struct {
 	Project Project `json:"project"`
 }
@@ -70,38 +75,25 @@ func (c *Client) Project(id int) (*Project, error) {
 	}
 	defer res.Body.Close()
 
-	decoder := json.NewDecoder(res.Body)
 	var r projectResult
 	if res.StatusCode == http.StatusNotFound {
 		return nil, fmt.Errorf("project (id: %d) was not found", id)
 	}
+
 	if !isHTTPStatusSuccessful(res.StatusCode, []int{http.StatusOK}) {
-		var er errorsResult
-		err = decoder.Decode(&er)
-		if err == nil {
-			err = errors.New(strings.Join(er.Errors, "\n"))
-		}
-	} else {
-		err = decoder.Decode(&r)
+		return nil, errors2.Wrapf(decodeHTTPError(res), "error while reading project %d", id)
 	}
+
+	err = json.NewDecoder(res.Body).Decode(&r)
 	if err != nil {
 		return nil, err
 	}
 	return &r.Project, nil
 }
 
-func isHTTPStatusSuccessful(httpStatus int, acceptedStatuses []int) bool {
-	for _, acceptedStatus := range acceptedStatuses {
-		if httpStatus == acceptedStatus {
-			return true
-		}
-	}
-
-	return false
-}
-
 func (c *Client) Projects() ([]Project, error) {
-	req, err := c.authenticatedGet(c.endpoint + "/projects.json")
+	url := jsonResourceEndpoint(c.endpoint, "projects")
+	req, err := c.authenticatedGet(url)
 	if err != nil {
 		return nil, errors2.Wrap(err, "error while creating GET request for projects")
 	}
@@ -116,17 +108,12 @@ func (c *Client) Projects() ([]Project, error) {
 	}
 	defer res.Body.Close()
 
-	decoder := json.NewDecoder(res.Body)
 	var r projectsResult
 	if !isHTTPStatusSuccessful(res.StatusCode, []int{http.StatusOK}) {
-		var er errorsResult
-		err = decoder.Decode(&er)
-		if err == nil {
-			err = errors.New(strings.Join(er.Errors, "\n"))
-		}
-	} else {
-		err = decoder.Decode(&r)
+		return nil, errors2.Wrap(decodeHTTPError(res), "error while reading projects")
 	}
+
+	err = json.NewDecoder(res.Body).Decode(&r)
 	if err != nil {
 		return nil, err
 	}
@@ -141,28 +128,24 @@ func (c *Client) CreateProject(project Project) (*Project, error) {
 		return nil, err
 	}
 
-	req, err := c.authenticatedRequest("POST", c.endpoint+"/projects.json", strings.NewReader(string(s)))
+	url := jsonResourceEndpoint(c.endpoint, "projects")
+	req, err := c.authenticatedRequest("POST", url, strings.NewReader(string(s)))
 	if err != nil {
 		return nil, errors2.Wrapf(err, "error while creating POST request for project %s ", project.Identifier)
 	}
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(httpHeaderContentType, httpContentTypeApplicationJson)
 	res, err := c.Do(req)
 	if err != nil {
 		return nil, errors2.Wrapf(err, "could not create project %s ", project.Identifier)
 	}
 	defer res.Body.Close()
 
-	decoder := json.NewDecoder(res.Body)
 	var r projectRequest
 	if !isHTTPStatusSuccessful(res.StatusCode, []int{http.StatusCreated}) {
-		var er errorsResult
-		err = decoder.Decode(&er)
-		if err == nil {
-			err = errors.New(strings.Join(er.Errors, "\n"))
-		}
-	} else {
-		err = decoder.Decode(&r)
+		return nil, errors2.Wrapf(decodeHTTPError(res), "error while creating project %s", project.Identifier)
 	}
+
+	err = json.NewDecoder(res.Body).Decode(&r)
 	if err != nil {
 		return nil, err
 	}
@@ -177,11 +160,12 @@ func (c *Client) UpdateProject(project Project) error {
 		return err
 	}
 
-	req, err := c.authenticatedRequest("PUT", c.endpoint+"/projects/"+strconv.Itoa(project.Id)+".json", strings.NewReader(string(s)))
+	url := jsonResourceEndpointByID(c.endpoint, "projects", project.Id)
+	req, err := c.authenticatedRequest("PUT", url, strings.NewReader(string(s)))
 	if err != nil {
 		return errors2.Wrapf(err, "error while creating PUT request for project %d ", project.Id)
 	}
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(httpHeaderContentType, httpContentTypeApplicationJson)
 	res, err := c.Do(req)
 	if err != nil {
 		return errors2.Wrapf(err, "could not update project %d ", project.Id)
@@ -192,25 +176,20 @@ func (c *Client) UpdateProject(project Project) error {
 		return fmt.Errorf("could not update project (id: %d) because it was not found", project.Id)
 	}
 	if !isHTTPStatusSuccessful(res.StatusCode, []int{http.StatusOK, http.StatusNoContent}) {
-		decoder := json.NewDecoder(res.Body)
-		var er errorsResult
-		err = decoder.Decode(&er)
-		if err == nil {
-			err = errors.New(strings.Join(er.Errors, "\n"))
-		}
+		return errors2.Wrapf(decodeHTTPError(res), "error while updating project %d", project.Id)
 	}
-	if err != nil {
-		return err
-	}
-	return err
+
+	return nil
 }
 
 func (c *Client) DeleteProject(id int) error {
-	req, err := c.authenticatedRequest("DELETE", c.endpoint+"/projects/"+strconv.Itoa(id)+".json", strings.NewReader(""))
+	url := jsonResourceEndpointByID(c.endpoint, "projects", id)
+	req, err := c.authenticatedRequest("DELETE", url, strings.NewReader(""))
 	if err != nil {
 		return errors2.Wrapf(err, "error while creating DELETE for project %d ", id)
 	}
-	req.Header.Set("Content-Type", "application/json")
+
+	req.Header.Set(httpHeaderContentType, httpContentTypeApplicationJson)
 	res, err := c.Do(req)
 	if err != nil {
 		return errors2.Wrapf(err, "could not delete project %d ", id)
@@ -218,16 +197,39 @@ func (c *Client) DeleteProject(id int) error {
 	defer res.Body.Close()
 
 	if res.StatusCode == http.StatusNotFound {
-		return fmt.Errorf("could not delete project (id %d) because it was not found", id)
+		return fmt.Errorf("could not delete project (id: %d) because it was not found", id)
 	}
 
-	decoder := json.NewDecoder(res.Body)
 	if !isHTTPStatusSuccessful(res.StatusCode, []int{http.StatusOK, http.StatusNoContent}) {
-		var er errorsResult
-		err = decoder.Decode(&er)
-		if err == nil {
-			err = errors.New(strings.Join(er.Errors, "\n"))
+		return errors2.Wrapf(decodeHTTPError(res), "error while deleting project %d", id)
+	}
+
+	return nil
+}
+
+func decodeHTTPError(res *http.Response) error {
+	var er errorsResult
+	err := json.NewDecoder(res.Body).Decode(&er)
+	if err == nil {
+		return errors.New(strings.Join(er.Errors, "\n"))
+	}
+	return errors2.Wrapf(err, "HTTP %s", res.Status)
+}
+
+func isHTTPStatusSuccessful(httpStatus int, acceptedStatuses []int) bool {
+	for _, acceptedStatus := range acceptedStatuses {
+		if httpStatus == acceptedStatus {
+			return true
 		}
 	}
-	return err
+
+	return false
+}
+
+func jsonResourceEndpointByID(baseURL, resourceName string, entityID int) string {
+	return fmt.Sprintf("%s/%s/%d.json", baseURL, resourceName, entityID)
+}
+
+func jsonResourceEndpoint(baseURL, resourceName string) string {
+	return fmt.Sprintf("%s/%s.json", baseURL, resourceName)
 }

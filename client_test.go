@@ -70,7 +70,7 @@ func TestNewClient(t *testing.T) {
 	})
 }
 
-func Test_safelyAddQueryParameter(t *testing.T) {
+func Test_safelySetQueryParameter(t *testing.T) {
 	const endpoint = "http://1.2.3.4:3030/endpoint"
 
 	type args struct {
@@ -92,20 +92,20 @@ func Test_safelyAddQueryParameter(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := safelyAddQueryParameter(tt.args.req, tt.args.key, tt.args.value)
+			err := safelySetQueryParameter(tt.args.req, tt.args.key, tt.args.value)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("safelyAddQueryParameter() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("safelySetQueryParameter() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			got := tt.args.req.URL.String()
 			if got != tt.want {
-				t.Errorf("safelyAddQueryParameter() got = %v, want %v", got, tt.want)
+				t.Errorf("safelySetQueryParameter() got = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestSafelyAddQueryParameter_requestSafety(t *testing.T) {
+func TestsafelySetQueryParameter_requestSafety(t *testing.T) {
 	t.Run("should not change request besides URL", func(t *testing.T) {
 		var ir projectRequest
 		ir.Project = Project{
@@ -121,8 +121,8 @@ func TestSafelyAddQueryParameter_requestSafety(t *testing.T) {
 		sutPOST, _ := http.NewRequest(httpMethodPost, "http://1.2.3.4:3030/endpoint?doTheThingDifferently", postReader)
 
 		// when
-		getErr := safelyAddQueryParameter(sutGET, "key", "value")
-		postErr := safelyAddQueryParameter(sutPOST, "key", "value")
+		getErr := safelySetQueryParameter(sutGET, "key", "value")
+		postErr := safelySetQueryParameter(sutPOST, "key", "value")
 
 		// then
 		require.NoError(t, getErr)
@@ -138,7 +138,7 @@ func TestSafelyAddQueryParameter_requestSafety(t *testing.T) {
 	})
 }
 
-func TestSafelyAddQueryParameters(t *testing.T) {
+func TestsafelySetQueryParameters(t *testing.T) {
 	const endpoint = "http://1.2.3.4:3030/endpoint"
 
 	type args struct {
@@ -161,14 +161,14 @@ func TestSafelyAddQueryParameters(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := safelyAddQueryParameters(tt.args.req, tt.args.kv)
+			err := safelySetQueryParameters(tt.args.req, tt.args.kv)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("safelyAddQueryParameters() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("safelySetQueryParameters() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			got := tt.args.req.URL.String()
 			if got != tt.want {
-				t.Errorf("safelyAddQueryParameters() got = %v, want %v", got, tt.want)
+				t.Errorf("safelySetQueryParameters() got = %v, want %v", got, tt.want)
 			}
 		})
 	}

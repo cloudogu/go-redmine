@@ -112,7 +112,7 @@ func (c *Client) authenticatedRequest(method string, urlWithoutAuthInfo string, 
 		req.SetBasicAuth(c.auth.User, c.auth.Password)
 		return req, nil
 	case AuthTypeTokenQueryParam:
-		err := safelyAddQueryParameter(req, "key", c.auth.Token)
+		err := safelySetQueryParameter(req, "key", c.auth.Token)
 		if err != nil {
 			return nil, errors.Wrap(err, errorMsg)
 		}
@@ -133,7 +133,7 @@ func (c *Client) authenticatedRequest(method string, urlWithoutAuthInfo string, 
 	return nil, errors.New("unsupported auth type") // must never occur because it was validated earlier
 }
 
-func safelyAddQueryParameter(req *http.Request, key, value string) error {
+func safelySetQueryParameter(req *http.Request, key, value string) error {
 	if key == "" {
 		return nil
 	}
@@ -143,15 +143,15 @@ func safelyAddQueryParameter(req *http.Request, key, value string) error {
 		return errors.Wrapf(err, "could not add query parameter %s because parsing the URL %s failed", key, parsedURL)
 	}
 	query := parsedURL.Query()
-	query.Add(key, value)
+	query.Set(key, value)
 	req.URL.RawQuery = query.Encode()
 
 	return nil
 }
 
-func safelyAddQueryParameters(req *http.Request, kvs []keyValue) error {
+func safelySetQueryParameters(req *http.Request, kvs []keyValue) error {
 	for _, kv := range kvs {
-		err := safelyAddQueryParameter(req, kv.key, kv.value)
+		err := safelySetQueryParameter(req, kv.key, kv.value)
 		if err != nil {
 			return errors.Wrapf(err, "could not add parameter to request")
 		}

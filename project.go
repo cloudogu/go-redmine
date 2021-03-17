@@ -91,7 +91,7 @@ func (c *Client) Projects() ([]Project, error) {
 	if err != nil {
 		return nil, errors2.Wrap(err, "error while creating GET request for projects")
 	}
-	err = safelyAddQueryParameters(req, c.getPaginationClauseParams())
+	err = safelySetQueryParameters(req, c.getPaginationClauseParams())
 	if err != nil {
 		return nil, errors2.Wrap(err, "error while adding pagination parameters to project request")
 	}

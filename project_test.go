@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-const simpleProjectBody = `{
+const testProjectJSON = `{
     "id": 1,
     "name": "example project",
     "identifier": "exampleproject",
@@ -41,8 +41,8 @@ const simpleProjectBody = `{
     "created_on": "2021-02-19T16:51:03Z",
     "updated_on": "2021-02-19T16:51:25Z"
   }`
-const simpleProjectJSON = `{ "project":` + simpleProjectBody + "}"
-const simpleProjectsJSON = `{ "projects":[` + simpleProjectBody + `],"total_count":1,"offset":0,"limit":25}`
+const simpleProjectJSON = `{ "project":` + testProjectJSON + "}"
+const simpleProjectsJSON = `{ "projects":[` + testProjectJSON + `],"total_count":1,"offset":0,"limit":25}`
 
 var testProject = Project{
 	Id:             1,
@@ -61,18 +61,6 @@ const (
 	authUser     = "leUser"
 	authPassword = "Passwort1! äöü+ß"
 	authToken    = "123456789"
-)
-
-var (
-	basicAuth = APIAuth{
-		AuthType: AuthTypeBasicAuth,
-		User:     authUser,
-		Password: authPassword,
-	}
-	queryParamAuth = APIAuth{
-		AuthType: AuthTypeTokenQueryParam,
-		Token:    authToken,
-	}
 )
 
 func TestClient_Project(t *testing.T) {

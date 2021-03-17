@@ -2,7 +2,6 @@ package redmine
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	errors2 "github.com/pkg/errors"
 	"net/http"
@@ -204,7 +203,7 @@ func (c *Client) CreateIssue(issue Issue) (*Issue, error) {
 	}
 	req, err := c.authenticatedPost(url, strings.NewReader(string(s)))
 	if err != nil {
-		return nil, errors2.Wrap(err, "error while creating PUT request for issue")
+		return nil, errors2.Wrap(err, "error while creating POST request for issue")
 	}
 	req.Header.Set(httpHeaderContentType, httpContentTypeApplicationJson)
 	res, err := c.Do(req)
@@ -213,17 +212,11 @@ func (c *Client) CreateIssue(issue Issue) (*Issue, error) {
 	}
 	defer res.Body.Close()
 
-	decoder := json.NewDecoder(res.Body)
 	var r issueRequest
 	if !isHTTPStatusSuccessful(res.StatusCode, []int{http.StatusCreated}) {
-		var er errorsResult
-		err = decoder.Decode(&er)
-		if err == nil {
-			err = errors.New(strings.Join(er.Errors, "\n"))
-		}
-	} else {
-		err = decoder.Decode(&r)
+		return nil, errors2.Wrapf(decodeHTTPError(res), "error while creating issue %s", issue.Subject)
 	}
+	err = json.NewDecoder(res.Body).Decode(&r)
 	if err != nil {
 		return nil, err
 	}

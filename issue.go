@@ -202,7 +202,7 @@ func (c *Client) CreateIssue(issue Issue) (*Issue, error) {
 	if err != nil {
 		return nil, err
 	}
-	req, err := c.authenticatedRequest(httpMethodPost, url, strings.NewReader(string(s)))
+	req, err := c.authenticatedPost(url, strings.NewReader(string(s)))
 	if err != nil {
 		return nil, errors2.Wrap(err, "error while creating PUT request for issue")
 	}
@@ -239,7 +239,7 @@ func (c *Client) UpdateIssue(issue Issue) error {
 	if err != nil {
 		return err
 	}
-	req, err := c.authenticatedRequest(httpMethodPut, url, strings.NewReader(string(s)))
+	req, err := c.authenticatedPut(url, strings.NewReader(string(s)))
 	if err != nil {
 		return errors2.Wrap(err, "error while creating PUT request for issue")
 	}
@@ -262,7 +262,7 @@ func (c *Client) UpdateIssue(issue Issue) error {
 
 func (c *Client) DeleteIssue(id int) error {
 	url := jsonResourceEndpointByID(c.endpoint, "issues", id)
-	req, err := c.authenticatedRequest(httpMethodDelete, url, strings.NewReader(""))
+	req, err := c.authenticatedDelete(url, strings.NewReader(""))
 	if err != nil {
 		return err
 	}

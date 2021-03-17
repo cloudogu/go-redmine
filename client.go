@@ -99,6 +99,17 @@ func (c *Client) authenticatedGet(urlWithoutAuthInfo string) (req *http.Request,
 	return c.authenticatedRequest(httpMethodGet, urlWithoutAuthInfo, nil)
 }
 
+func (c *Client) authenticatedPost(urlWithoutAuthInfo string, body io.Reader) (req *http.Request, err error) {
+	return c.authenticatedRequest(httpMethodPost, urlWithoutAuthInfo, body)
+}
+
+func (c *Client) authenticatedPut(urlWithoutAuthInfo string, body io.Reader) (req *http.Request, err error) {
+	return c.authenticatedRequest(httpMethodPut, urlWithoutAuthInfo, body)
+}
+func (c *Client) authenticatedDelete(urlWithoutAuthInfo string, body io.Reader) (req *http.Request, err error) {
+	return c.authenticatedRequest(httpMethodDelete, urlWithoutAuthInfo, body)
+}
+
 func (c *Client) authenticatedRequest(method string, urlWithoutAuthInfo string, body io.Reader) (req *http.Request, err error) {
 	errorMsg := fmt.Sprintf("could not create %s request for %s and auth type %d", method, urlWithoutAuthInfo, c.auth.AuthType)
 

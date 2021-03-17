@@ -123,7 +123,7 @@ func (c *Client) CreateProject(project Project) (*Project, error) {
 	}
 
 	url := jsonResourceEndpoint(c.endpoint, "projects")
-	req, err := c.authenticatedRequest(httpMethodPost, url, strings.NewReader(string(s)))
+	req, err := c.authenticatedPost(url, strings.NewReader(string(s)))
 	if err != nil {
 		return nil, errors2.Wrapf(err, "error while creating POST request for project %s ", project.Identifier)
 	}
@@ -155,7 +155,7 @@ func (c *Client) UpdateProject(project Project) error {
 	}
 
 	url := jsonResourceEndpointByID(c.endpoint, "projects", project.Id)
-	req, err := c.authenticatedRequest(httpMethodPut, url, strings.NewReader(string(s)))
+	req, err := c.authenticatedPut(url, strings.NewReader(string(s)))
 	if err != nil {
 		return errors2.Wrapf(err, "error while creating PUT request for project %d ", project.Id)
 	}
@@ -178,7 +178,7 @@ func (c *Client) UpdateProject(project Project) error {
 
 func (c *Client) DeleteProject(id int) error {
 	url := jsonResourceEndpointByID(c.endpoint, "projects", id)
-	req, err := c.authenticatedRequest(httpMethodDelete, url, strings.NewReader(""))
+	req, err := c.authenticatedDelete(url, strings.NewReader(""))
 	if err != nil {
 		return errors2.Wrapf(err, "error while creating DELETE request for project %d ", id)
 	}

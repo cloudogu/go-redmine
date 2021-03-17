@@ -394,24 +394,6 @@ func createProject() {
 	}
 }
 
-func updateProject(id int) {
-	project, err := client.Project(id)
-	if err != nil {
-		fatal("Failed to update project: %s\n", err)
-	}
-	projectNew, err := projectFromEditor(fmt.Sprintf("%s\n%s\n%s\n", project.Name, project.Identifier, project.Description))
-	if err != nil {
-		fatal("%s\n", err)
-	}
-	project.Name = projectNew.Name
-	project.Identifier = projectNew.Identifier
-	project.Description = projectNew.Description
-	err = client.UpdateProject(*project)
-	if err != nil {
-		fatal("Failed to update project: %s\n", err)
-	}
-}
-
 func deleteProject(id int) {
 	err := client.DeleteProject(id)
 	if err != nil {
@@ -888,16 +870,12 @@ func main() {
 		switch flag.Arg(1) {
 		case "e", "edit":
 			editConfigFile()
-			break
 		case "i", "init":
 			initConfigFile(flag.Arg(2), flag.Arg(3), flag.Arg(4))
-			break
 		case "l", "list":
 			listConfigFile()
-			break
 		case "s", "show":
 			showConfigFile()
-			break
 		default:
 			usage()
 		}

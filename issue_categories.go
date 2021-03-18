@@ -127,32 +127,27 @@ func (c *Client) UpdateIssueCategory(issueCategory IssueCategory) error {
 	if err != nil {
 		return err
 	}
-	req, err := http.NewRequest(httpMethodPut, c.endpoint+"/issue_categories/"+strconv.Itoa(issueCategory.Id)+".json?"+c.apiKeyParameter(), strings.NewReader(string(s)))
+
+	url := jsonResourceEndpointByID(c.endpoint, "issue_categories", issueCategory.Id)
+	req, err := c.authenticatedPut(url, strings.NewReader(string(s)))
 	if err != nil {
-		return err
+		return errors2.Wrapf(err, "error while creating PUT request for issue category %d ", issueCategory.Id)
 	}
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(httpHeaderContentType, httpContentTypeApplicationJson)
 	res, err := c.Do(req)
 	if err != nil {
-		return err
+		return errors2.Wrapf(err, "could not update project %d ", issueCategory.Id)
 	}
 	defer res.Body.Close()
 
-	if res.StatusCode == 404 {
-		return errors.New("Not Found")
+	if res.StatusCode == http.StatusNotFound {
+		return fmt.Errorf("could not update issue category (id: %d) because it was not found", issueCategory.Id)
 	}
-	if res.StatusCode != 200 {
-		decoder := json.NewDecoder(res.Body)
-		var er errorsResult
-		err = decoder.Decode(&er)
-		if err == nil {
-			err = errors.New(strings.Join(er.Errors, "\n"))
-		}
+	if !isHTTPStatusSuccessful(res.StatusCode, []int{http.StatusOK, http.StatusNoContent}) {
+		return errors2.Wrapf(decodeHTTPError(res), "error while updating issue category %d", issueCategory.Id)
 	}
-	if err != nil {
-		return err
-	}
-	return err
+
+	return nil
 }
 
 func (c *Client) DeleteIssueCategory(id int) error {

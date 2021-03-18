@@ -5,7 +5,6 @@ import (
 	"fmt"
 	errors2 "github.com/pkg/errors"
 	"net/http"
-	"strconv"
 	"strings"
 )
 
@@ -58,7 +57,8 @@ type Project struct {
 
 // Project returns a single project without additional fields.
 func (c *Client) Project(id int) (*Project, error) {
-	req, err := c.authenticatedGet(c.endpoint + "/projects/" + strconv.Itoa(id) + ".json")
+	url := jsonResourceEndpointByID(c.endpoint, "projects", id)
+	req, err := c.authenticatedGet(url)
 	if err != nil {
 		return nil, errors2.Wrapf(err, "error while creating GET request for project %d ", id)
 	}

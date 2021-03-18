@@ -214,13 +214,11 @@ func TestClient_Project(t *testing.T) {
 
 func TestClient_Projects(t *testing.T) {
 	t.Run("should add basic auth to project GET request", func(t *testing.T) {
-		const authUser = "leUser"
-		const authPasswort = "Passwort1! äöü+ß"
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			user, password, ok := r.BasicAuth()
 			assert.True(t, ok)
 			assert.Equal(t, authUser, user)
-			assert.Equal(t, authPasswort, password)
+			assert.Equal(t, authPassword, password)
 			_, _ = fmt.Fprintln(w, simpleProjectsJSON)
 		}))
 		defer ts.Close()
@@ -248,41 +246,6 @@ func TestClient_Projects(t *testing.T) {
 			},
 		}
 		assert.Equal(t, expectedProject, actualProjects)
-	})
-
-	t.Run("should add auth token to project GET request", func(t *testing.T) {
-		actualCalledURL := ""
-
-		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			actualCalledURL = r.URL.String()
-			_, _ = fmt.Fprintln(w, simpleProjectsJSON)
-		}))
-		defer ts.Close()
-
-		sut, _ := NewClientBuilder().Endpoint(ts.URL).AuthAPIToken(authToken).Build()
-
-		// when
-		actualProjects, err := sut.Projects()
-
-		// then
-		require.NoError(t, err)
-		require.NotEmpty(t, actualProjects)
-		expectedProject := []Project{
-			{
-				Id:             1,
-				ParentID:       Id{},
-				Name:           "example project",
-				Identifier:     "exampleproject",
-				Description:    "This is an example project.",
-				Homepage:       "http://github.com/cloudogu/go-redmine",
-				IsPublic:       true,
-				InheritMembers: true,
-				CreatedOn:      "2021-02-19T16:51:03Z",
-				UpdatedOn:      "2021-02-19T16:51:25Z",
-			},
-		}
-		assert.Equal(t, expectedProject, actualProjects)
-		assert.Equal(t, "/projects.json?key=123456789", actualCalledURL)
 	})
 
 	t.Run("should add auth token to project GET request", func(t *testing.T) {

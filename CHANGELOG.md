@@ -7,14 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- Add Basic Authentication support for project and issue CRUD requests (#3)
-- Add Basic Authentication support for issue priority read requests (#3)
+- Add Basic Authentication support for these operations and entities (#3):
+  - CRUD:
+    - projects
+    - issues
+    - issue categories
+  - Read: issue priorities
 - Add option to skip SSL certificate verification (#4)
+- Under the hood:
+  - add more meaningful errors for HTTP error responses to aforementioned entities
+  - add Jenkins CI
 
 ### Changed
 - Deprecate `NewClient()` constructor in favor of more flexible `ClientBuilder`
 - Update Makefiles to support reproducible builds
-- Change way of defining the binary version
+- Change way of defining the version of the executable
 
 ### Removed
 - Remove obsolete make targets that rely on a different version definition

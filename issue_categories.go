@@ -2,7 +2,6 @@ package redmine
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	errors2 "github.com/pkg/errors"
 	"net/http"
@@ -151,28 +150,26 @@ func (c *Client) UpdateIssueCategory(issueCategory IssueCategory) error {
 }
 
 func (c *Client) DeleteIssueCategory(id int) error {
-	req, err := http.NewRequest(httpMethodDelete, c.endpoint+"/issue_categories/"+strconv.Itoa(id)+".json?"+c.apiKeyParameter(), strings.NewReader(""))
+	url := jsonResourceEndpointByID(c.endpoint, "issue_categories", id)
+	req, err := c.authenticatedDelete(url, strings.NewReader(""))
 	if err != nil {
-		return err
+		return errors2.Wrapf(err, "error while creating DELETE request for issue category %d ", id)
 	}
-	req.Header.Set("Content-Type", "application/json")
+
+	req.Header.Set(httpHeaderContentType, httpContentTypeApplicationJson)
 	res, err := c.Do(req)
 	if err != nil {
-		return err
+		return errors2.Wrapf(err, "could not delete issue category %d ", id)
 	}
 	defer res.Body.Close()
 
-	if res.StatusCode == 404 {
-		return errors.New("Not Found")
+	if res.StatusCode == http.StatusNotFound {
+		return fmt.Errorf("could not delete issue category (id: %d) because it was not found", id)
 	}
 
-	decoder := json.NewDecoder(res.Body)
-	if res.StatusCode != 200 {
-		var er errorsResult
-		err = decoder.Decode(&er)
-		if err == nil {
-			err = errors.New(strings.Join(er.Errors, "\n"))
-		}
+	if !isHTTPStatusSuccessful(res.StatusCode, []int{http.StatusOK, http.StatusNoContent}) {
+		return errors2.Wrapf(decodeHTTPError(res), "error while deleting issue category %d", id)
 	}
-	return err
+
+	return nil
 }

@@ -10,7 +10,6 @@ import (
 )
 
 const testIssueCategory1BodyJSON = `{"id":1,"project":{"id":1,"name":"Test Project"},"name":"Important Product"}`
-const testIssueCategory2BodyJSON = `{"id":2,"project":{"id":1,"name":"Test IssueCategory"},"name":"Service \u0026 Maintenance","assigned_to":{"id":1,"name":"Redmine Admin"}}`
 const testIssueCategoryJSON = `{ "issue_category":` + testIssueCategory1BodyJSON + "}"
 const testIssueCategoriesJSON = `{"issue_categories":[` + testIssueCategory1BodyJSON + `],"total_count":1,"offset":0,"limit":25}`
 const testProjectID = 1
@@ -275,7 +274,7 @@ func TestClient_CreateIssueCategory(t *testing.T) {
 		assert.Equal(t, testIssueCategory1, *actualIssueCategory)
 	})
 
-	t.Run("should add basic auth to project POST request", func(t *testing.T) {
+	t.Run("should add basic auth to issue category POST request", func(t *testing.T) {
 		actualAuthUser := ""
 		actualAuthPass := ""
 		actualBasicAuthOk := false
@@ -306,7 +305,7 @@ func TestClient_CreateIssueCategory(t *testing.T) {
 		assert.Equal(t, "/issue_categories.json", actualCalledURL)
 	})
 
-	t.Run("should add auth token to project POST request", func(t *testing.T) {
+	t.Run("should add auth token to issue category POST request", func(t *testing.T) {
 		actualAuthUser := ""
 		actualAuthPass := ""
 		actualBasicAuthOk := false
@@ -371,10 +370,6 @@ func TestClient_CreateIssueCategory(t *testing.T) {
 		require.Empty(t, actualIssueCategory)
 		assert.Contains(t, err.Error(), "HTTP 401 Unauthorized")
 	})
-}
-
-func TestClient_DeleteIssueCategory(t *testing.T) {
-
 }
 
 func TestClient_UpdateIssueCategory(t *testing.T) {
@@ -481,6 +476,117 @@ func TestClient_UpdateIssueCategory(t *testing.T) {
 
 		// when
 		err := sut.UpdateIssueCategory(testIssueCategory1)
+
+		// then
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "HTTP 401 Unauthorized")
+	})
+}
+
+func TestClient_DeleteIssueCategory(t *testing.T) {
+	t.Run("should return without error on success", func(t *testing.T) {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+			w.WriteHeader(http.StatusNoContent)
+		}))
+		defer ts.Close()
+
+		sut, _ := NewClientBuilder().Endpoint(ts.URL).AuthAPIToken(authToken).Build()
+
+		// when
+		err := sut.DeleteIssueCategory(1)
+
+		// then
+		require.NoError(t, err)
+	})
+
+	t.Run("should add basic auth to issue category DELETE request", func(t *testing.T) {
+		actualAuthUser := ""
+		actualAuthPass := ""
+		actualBasicAuthOk := false
+		actualCalledURL := ""
+		actualHTTPMethod := ""
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			actualCalledURL = r.URL.String()
+			actualHTTPMethod = r.Method
+			actualAuthUser, actualAuthPass, actualBasicAuthOk = r.BasicAuth()
+
+			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+			w.WriteHeader(http.StatusNoContent)
+		}))
+		defer ts.Close()
+
+		sut, _ := NewClientBuilder().Endpoint(ts.URL).AuthBasicAuth(authUser, authPassword).Build()
+
+		// when
+		err := sut.DeleteIssueCategory(1)
+
+		// then
+		require.NoError(t, err)
+		assert.Equal(t, authUser, actualAuthUser)
+		assert.Equal(t, authPassword, actualAuthPass)
+		assert.True(t, actualBasicAuthOk)
+		assert.Equal(t, httpMethodDelete, actualHTTPMethod)
+		assert.Equal(t, "/issue_categories/1.json", actualCalledURL)
+	})
+
+	t.Run("should add auth token to issue category DELETE request", func(t *testing.T) {
+		actualAuthUser := ""
+		actualAuthPass := ""
+		actualBasicAuthOk := false
+		actualCalledURL := ""
+		actualHTTPMethod := ""
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			actualCalledURL = r.URL.String()
+			actualHTTPMethod = r.Method
+			actualAuthUser, actualAuthPass, actualBasicAuthOk = r.BasicAuth()
+
+			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+			w.WriteHeader(http.StatusNoContent)
+		}))
+		defer ts.Close()
+
+		sut, _ := NewClientBuilder().Endpoint(ts.URL).AuthAPIToken(authToken).Build()
+
+		// when
+		err := sut.DeleteIssueCategory(1)
+
+		// then
+		require.NoError(t, err)
+		assert.Empty(t, actualAuthUser)
+		assert.Empty(t, actualAuthPass)
+		assert.False(t, actualBasicAuthOk)
+		assert.Equal(t, httpMethodDelete, actualHTTPMethod)
+		assert.Equal(t, "/issue_categories/1.json?key=123456789", actualCalledURL)
+	})
+
+	t.Run("should handle non-existing issue categories as error", func(t *testing.T) {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			http.NotFound(w, r)
+		}))
+		defer ts.Close()
+
+		sut, _ := NewClientBuilder().Endpoint(ts.URL).AuthAPIToken(authToken).Build()
+
+		// when
+		err := sut.DeleteIssueCategory(1)
+
+		// then
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "could not delete issue category (id: 1)")
+		assert.Contains(t, err.Error(), "not found")
+	})
+
+	t.Run("should handle body-less HTTP responses as error", func(t *testing.T) {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			http.Error(w, "", http.StatusUnauthorized)
+		}))
+		defer ts.Close()
+
+		sut, _ := NewClientBuilder().Endpoint(ts.URL).AuthAPIToken(authToken).Build()
+
+		// when
+		err := sut.DeleteIssueCategory(1)
 
 		// then
 		require.Error(t, err)

@@ -47,6 +47,7 @@ const testIssueBodyJSON = `{
   }`
 const testIssueJSON = `{"issue":` + testIssueBodyJSON + `}`
 const testIssuesJSON = `{"issues":[` + testIssueBodyJSON + `],"total_count":1,"offset":0,"limit":25}`
+const projectID = 1
 
 var testIssue = Issue{
 	Id:          1,
@@ -147,6 +148,58 @@ func Test_getOneIssue(t *testing.T) {
 		assert.Equal(t, "", actual.DueDate)
 		assert.Equal(t, "", actual.ClosedOn)
 	})
+
+	t.Run("should handle non-existing issues as error", func(t *testing.T) {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			http.NotFound(w, r)
+		}))
+		defer ts.Close()
+
+		sut, _ := NewClientBuilder().Endpoint(ts.URL).AuthAPIToken(authToken).Build()
+
+		// when
+		actual, err := getOneIssue(sut, 1, nil)
+
+		// then
+		require.Error(t, err)
+		require.Empty(t, actual)
+		assert.Contains(t, err.Error(), "issue (id: 1) was not found")
+	})
+
+	t.Run("should handle HTTP 422 errors as error", func(t *testing.T) {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			errorAsJson := `{ "errors":[ "Something is not well", "Another thing is also unacceptable" ] }`
+			http.Error(w, errorAsJson, http.StatusUnprocessableEntity)
+		}))
+		defer ts.Close()
+
+		sut, _ := NewClientBuilder().Endpoint(ts.URL).AuthAPIToken(authToken).Build()
+
+		// when
+		actual, err := getOneIssue(sut, 1, nil)
+
+		// then
+		require.Error(t, err)
+		require.Empty(t, actual)
+		assert.Contains(t, err.Error(), "Something is not well\nAnother thing is also unacceptable")
+	})
+
+	t.Run("should handle body-less HTTP responses as error", func(t *testing.T) {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			http.Error(w, "", http.StatusUnauthorized)
+		}))
+		defer ts.Close()
+
+		sut, _ := NewClientBuilder().Endpoint(ts.URL).AuthAPIToken(authToken).Build()
+
+		// when
+		actual, err := getOneIssue(sut, 1, nil)
+
+		// then
+		require.Error(t, err)
+		require.Empty(t, actual)
+		assert.Contains(t, err.Error(), "HTTP 401 Unauthorized")
+	})
 }
 
 func TestClient_IssuesOf(t *testing.T) {
@@ -163,7 +216,6 @@ func TestClient_IssuesOf(t *testing.T) {
 		defer ts.Close()
 
 		sut, _ := NewClientBuilder().Endpoint(ts.URL).AuthAPIToken(testAPIToken).Build()
-		projectID := 1
 
 		// when
 		_, err := sut.IssuesOf(projectID)
@@ -196,7 +248,6 @@ func TestClient_IssuesOf(t *testing.T) {
 		defer ts.Close()
 
 		sut, _ := NewClientBuilder().Endpoint(ts.URL).AuthBasicAuth(authUser, authPassword).Build()
-		projectID := 1
 
 		// when
 		_, err := sut.IssuesOf(projectID)
@@ -228,7 +279,6 @@ func TestClient_IssuesOf(t *testing.T) {
 		defer ts.Close()
 
 		sut, _ := NewClientBuilder().Endpoint(ts.URL).AuthAPIToken(testAPIToken).Build()
-		projectID := 1
 
 		// when
 		actualIssues, err := sut.IssuesOf(projectID)
@@ -336,6 +386,58 @@ func TestClient_Issue(t *testing.T) {
 		assert.Equal(t, "", actual.StartDate)
 		assert.Equal(t, "", actual.DueDate)
 		assert.Equal(t, "", actual.ClosedOn)
+	})
+
+	t.Run("should handle non-existing issues as error", func(t *testing.T) {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			http.NotFound(w, r)
+		}))
+		defer ts.Close()
+
+		sut, _ := NewClientBuilder().Endpoint(ts.URL).AuthAPIToken(authToken).Build()
+
+		// when
+		actual, err := sut.Issue(1)
+
+		// then
+		require.Error(t, err)
+		require.Empty(t, actual)
+		assert.Contains(t, err.Error(), "issue (id: 1) was not found")
+	})
+
+	t.Run("should handle HTTP 422 errors as error", func(t *testing.T) {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			errorAsJson := `{ "errors":[ "Something is not well", "Another thing is also unacceptable" ] }`
+			http.Error(w, errorAsJson, http.StatusUnprocessableEntity)
+		}))
+		defer ts.Close()
+
+		sut, _ := NewClientBuilder().Endpoint(ts.URL).AuthAPIToken(authToken).Build()
+
+		// when
+		actual, err := sut.Issue(1)
+
+		// then
+		require.Error(t, err)
+		require.Empty(t, actual)
+		assert.Contains(t, err.Error(), "Something is not well\nAnother thing is also unacceptable")
+	})
+
+	t.Run("should handle body-less HTTP responses as error", func(t *testing.T) {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			http.Error(w, "", http.StatusUnauthorized)
+		}))
+		defer ts.Close()
+
+		sut, _ := NewClientBuilder().Endpoint(ts.URL).AuthAPIToken(authToken).Build()
+
+		// when
+		actual, err := sut.Issue(1)
+
+		// then
+		require.Error(t, err)
+		require.Empty(t, actual)
+		assert.Contains(t, err.Error(), "HTTP 401 Unauthorized")
 	})
 }
 
@@ -572,6 +674,41 @@ func TestClient_CreateIssue(t *testing.T) {
 		assert.Equal(t, "", actual.DueDate)
 		assert.Equal(t, "", actual.ClosedOn)
 	})
+
+	t.Run("should handle HTTP 422 errors as error", func(t *testing.T) {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			errorAsJson := `{ "errors":[ "Something is not well", "Another thing is also unacceptable" ] }`
+			http.Error(w, errorAsJson, http.StatusUnprocessableEntity)
+		}))
+		defer ts.Close()
+
+		sut, _ := NewClientBuilder().Endpoint(ts.URL).AuthAPIToken(authToken).Build()
+
+		// when
+		actual, err := sut.CreateIssue(testIssue)
+
+		// then
+		require.Error(t, err)
+		require.Empty(t, actual)
+		assert.Contains(t, err.Error(), "Something is not well\nAnother thing is also unacceptable")
+	})
+
+	t.Run("should handle body-less HTTP responses as error", func(t *testing.T) {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			http.Error(w, "", http.StatusUnauthorized)
+		}))
+		defer ts.Close()
+
+		sut, _ := NewClientBuilder().Endpoint(ts.URL).AuthAPIToken(authToken).Build()
+
+		// when
+		actual, err := sut.CreateIssue(testIssue)
+
+		// then
+		require.Error(t, err)
+		require.Empty(t, actual)
+		assert.Contains(t, err.Error(), "HTTP 401 Unauthorized")
+	})
 }
 
 func TestClient_DeleteIssue(t *testing.T) {
@@ -634,6 +771,55 @@ func TestClient_DeleteIssue(t *testing.T) {
 		// then
 		require.NoError(t, err)
 	})
+
+	t.Run("should handle non-existing issues as error", func(t *testing.T) {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			http.NotFound(w, r)
+		}))
+		defer ts.Close()
+
+		sut, _ := NewClientBuilder().Endpoint(ts.URL).AuthAPIToken(authToken).Build()
+
+		// when
+		err := sut.DeleteIssue(1)
+
+		// then
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "could not delete issue (id: 1) because it was not found")
+	})
+
+	t.Run("should handle HTTP 422 errors as error", func(t *testing.T) {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			errorAsJson := `{ "errors":[ "Something is not well", "Another thing is also unacceptable" ] }`
+			http.Error(w, errorAsJson, http.StatusUnprocessableEntity)
+		}))
+		defer ts.Close()
+
+		sut, _ := NewClientBuilder().Endpoint(ts.URL).AuthAPIToken(authToken).Build()
+
+		// when
+		err := sut.DeleteIssueCategory(1)
+
+		// then
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "Something is not well\nAnother thing is also unacceptable")
+	})
+
+	t.Run("should handle body-less HTTP responses as error", func(t *testing.T) {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			http.Error(w, "", http.StatusUnauthorized)
+		}))
+		defer ts.Close()
+
+		sut, _ := NewClientBuilder().Endpoint(ts.URL).AuthAPIToken(authToken).Build()
+
+		// when
+		err := sut.DeleteIssueCategory(1)
+
+		// then
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "HTTP 401 Unauthorized")
+	})
 }
 
 func TestClient_UpdateIssue(t *testing.T) {
@@ -694,6 +880,55 @@ func TestClient_UpdateIssue(t *testing.T) {
 
 		// then
 		require.NoError(t, err)
+	})
+
+	t.Run("should handle non-existing issues as error", func(t *testing.T) {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			http.NotFound(w, r)
+		}))
+		defer ts.Close()
+
+		sut, _ := NewClientBuilder().Endpoint(ts.URL).AuthAPIToken(authToken).Build()
+
+		// when
+		err := sut.UpdateIssue(testIssue)
+
+		// then
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "could not update issue (id: 1) because it was not found")
+	})
+
+	t.Run("should handle HTTP 422 errors as error", func(t *testing.T) {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			errorAsJson := `{ "errors":[ "Something is not well", "Another thing is also unacceptable" ] }`
+			http.Error(w, errorAsJson, http.StatusUnprocessableEntity)
+		}))
+		defer ts.Close()
+
+		sut, _ := NewClientBuilder().Endpoint(ts.URL).AuthAPIToken(authToken).Build()
+
+		// when
+		err := sut.UpdateIssue(testIssue)
+
+		// then
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "Something is not well\nAnother thing is also unacceptable")
+	})
+
+	t.Run("should handle body-less HTTP responses as error", func(t *testing.T) {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			http.Error(w, "", http.StatusUnauthorized)
+		}))
+		defer ts.Close()
+
+		sut, _ := NewClientBuilder().Endpoint(ts.URL).AuthAPIToken(authToken).Build()
+
+		// when
+		err := sut.UpdateIssue(testIssue)
+
+		// then
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "HTTP 401 Unauthorized")
 	})
 }
 

@@ -3,6 +3,8 @@ package redmine
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	errors2 "github.com/pkg/errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -56,26 +58,28 @@ func (c *Client) IssueCategories(projectId int) ([]IssueCategory, error) {
 }
 
 func (c *Client) IssueCategory(id int) (*IssueCategory, error) {
-	res, err := c.Get(c.endpoint + "/issue_categories/" + strconv.Itoa(id) + ".json?" + c.apiKeyParameter())
+	url := jsonResourceEndpointByID(c.endpoint, "issue_categories", id)
+	req, err := c.authenticatedGet(url)
 	if err != nil {
-		return nil, err
+		return nil, errors2.Wrapf(err, "error while creating GET request for issue category %d ", id)
+	}
+
+	res, err := c.Do(req)
+	if err != nil {
+		return nil, errors2.Wrapf(err, "could not read issue category %d ", id)
 	}
 	defer res.Body.Close()
 
-	decoder := json.NewDecoder(res.Body)
 	var r issueCategoryResult
-	if res.StatusCode == 404 {
-		return nil, errors.New("Not Found")
+	if res.StatusCode == http.StatusNotFound {
+		return nil, fmt.Errorf("issue category (id: %d) was not found", id)
 	}
-	if res.StatusCode != 200 {
-		var er errorsResult
-		err = decoder.Decode(&er)
-		if err == nil {
-			err = errors.New(strings.Join(er.Errors, "\n"))
-		}
-	} else {
-		err = decoder.Decode(&r)
+
+	if !isHTTPStatusSuccessful(res.StatusCode, []int{http.StatusOK}) {
+		return nil, errors2.Wrapf(decodeHTTPError(res), "error while reading issue category %d", id)
 	}
+
+	err = json.NewDecoder(res.Body).Decode(&r)
 	if err != nil {
 		return nil, err
 	}

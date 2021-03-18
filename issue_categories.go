@@ -5,9 +5,10 @@ import (
 	"fmt"
 	errors2 "github.com/pkg/errors"
 	"net/http"
-	"strconv"
 	"strings"
 )
+
+const entityEndpointNameIssueCategories = "issue_categories"
 
 type issueCategoriesResult struct {
 	IssueCategories []IssueCategory `json:"issue_categories"`
@@ -22,15 +23,24 @@ type issueCategoryRequest struct {
 	IssueCategory IssueCategory `json:"issue_category"`
 }
 
+// IssueCategory is a project specific entity.
 type IssueCategory struct {
-	Id         int    `json:"id"`
-	Project    IdName `json:"project"`
-	Name       string `json:"name"`
+	// Id uniquely identifies an issue category system wide (even though it can only be used inside a single project).
+	// The Id is computed on creation; after that it is a required field.
+	Id int `json:"id"`
+	// Project associates this issue category with a project.
+	// It is a required field (even though only the project's ID will be accounted for during modification requests).
+	Project IdName `json:"project"`
+	// Name contains the human readable value of the issue category. Required field.
+	Name string `json:"name"`
+	// AssignedTo associates this issue category to a user identified by the ID. This user will be automatically assigned
+	// on issue creation with this category. Optional field.
 	AssignedTo IdName `json:"assigned_to"`
 }
 
 func (c *Client) IssueCategories(projectId int) ([]IssueCategory, error) {
-	url := jsonResourceEndpoint(c.endpoint, "projects/"+strconv.Itoa(projectId)+"/issue_categories")
+	compoundEndpointName := fmt.Sprintf("%s/%d/%s", entityEndpointNameProjects, projectId, entityEndpointNameIssueCategories)
+	url := jsonResourceEndpoint(c.endpoint, compoundEndpointName)
 	req, err := c.authenticatedGet(url)
 	if err != nil {
 		return nil, errors2.Wrap(err, "error while creating GET request for issue_categories")
@@ -59,7 +69,7 @@ func (c *Client) IssueCategories(projectId int) ([]IssueCategory, error) {
 }
 
 func (c *Client) IssueCategory(id int) (*IssueCategory, error) {
-	url := jsonResourceEndpointByID(c.endpoint, "issue_categories", id)
+	url := jsonResourceEndpointByID(c.endpoint, entityEndpointNameIssueCategories, id)
 	req, err := c.authenticatedGet(url)
 	if err != nil {
 		return nil, errors2.Wrapf(err, "error while creating GET request for issue category %d ", id)
@@ -95,7 +105,8 @@ func (c *Client) CreateIssueCategory(issueCategory IssueCategory) (*IssueCategor
 		return nil, err
 	}
 
-	url := jsonResourceEndpoint(c.endpoint, "issue_categories")
+	compoundEndpointName := fmt.Sprintf("%s/%d/%s", entityEndpointNameProjects, issueCategory.Project.Id, entityEndpointNameIssueCategories)
+	url := jsonResourceEndpoint(c.endpoint, compoundEndpointName)
 	req, err := c.authenticatedPost(url, strings.NewReader(string(s)))
 	if err != nil {
 		return nil, errors2.Wrapf(err, "error while creating POST request for issue category %s ", issueCategory.Name)

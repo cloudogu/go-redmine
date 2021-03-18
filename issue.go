@@ -9,6 +9,8 @@ import (
 	"strings"
 )
 
+const entityEndpointNameIssues = "issues"
+
 type issueRequest struct {
 	Issue Issue `json:"issue"`
 }
@@ -89,7 +91,7 @@ type CustomField struct {
 }
 
 func (c *Client) IssuesOf(projectId int) ([]Issue, error) {
-	url := jsonResourceEndpoint(c.endpoint, "issues")
+	url := jsonResourceEndpoint(c.endpoint, entityEndpointNameIssues)
 	req, err := c.authenticatedGet(url)
 	if err != nil {
 		return nil, errors2.Wrap(err, "error while creating GET request for issues")
@@ -120,7 +122,7 @@ func (c *Client) IssueWithArgs(id int, args map[string]string) (*Issue, error) {
 }
 
 func (c *Client) IssuesByQuery(queryId int) ([]Issue, error) {
-	url := jsonResourceEndpoint(c.endpoint, "issues")
+	url := jsonResourceEndpoint(c.endpoint, entityEndpointNameIssues)
 	req, err := c.authenticatedGet(url)
 	if err != nil {
 		return nil, errors2.Wrap(err, "error while creating GET request for issues")
@@ -144,7 +146,7 @@ func (c *Client) IssuesByQuery(queryId int) ([]Issue, error) {
 
 // IssuesByFilter filters issues applying the f criteria
 func (c *Client) IssuesByFilter(f *IssueFilter) ([]Issue, error) {
-	url := jsonResourceEndpoint(c.endpoint, "issues")
+	url := jsonResourceEndpoint(c.endpoint, entityEndpointNameIssues)
 	req, err := c.authenticatedGet(url)
 	if err != nil {
 		return nil, errors2.Wrap(err, "error while creating GET request for issues")
@@ -174,7 +176,7 @@ func (c *Client) IssuesByFilter(f *IssueFilter) ([]Issue, error) {
 }
 
 func (c *Client) Issues() ([]Issue, error) {
-	url := jsonResourceEndpoint(c.endpoint, "issues")
+	url := jsonResourceEndpoint(c.endpoint, entityEndpointNameIssues)
 	req, err := c.authenticatedGet(url)
 	if err != nil {
 		return nil, errors2.Wrap(err, "error while creating GET request for issues")
@@ -193,7 +195,7 @@ func (c *Client) Issues() ([]Issue, error) {
 }
 
 func (c *Client) CreateIssue(issue Issue) (*Issue, error) {
-	url := jsonResourceEndpoint(c.endpoint, "issues")
+	url := jsonResourceEndpoint(c.endpoint, entityEndpointNameIssues)
 
 	var ir issueRequest
 	ir.Issue = issue
@@ -224,7 +226,7 @@ func (c *Client) CreateIssue(issue Issue) (*Issue, error) {
 }
 
 func (c *Client) UpdateIssue(issue Issue) error {
-	url := jsonResourceEndpointByID(c.endpoint, "issues", issue.Id)
+	url := jsonResourceEndpointByID(c.endpoint, entityEndpointNameIssues, issue.Id)
 
 	var ir issueRequest
 	ir.Issue = issue
@@ -254,7 +256,7 @@ func (c *Client) UpdateIssue(issue Issue) error {
 }
 
 func (c *Client) DeleteIssue(id int) error {
-	url := jsonResourceEndpointByID(c.endpoint, "issues", id)
+	url := jsonResourceEndpointByID(c.endpoint, entityEndpointNameIssues, id)
 	req, err := c.authenticatedDelete(url, strings.NewReader(""))
 	if err != nil {
 		return err
@@ -345,7 +347,7 @@ func getIssueFilterClause(filter *IssueFilter) string {
 func getOneIssue(c *Client, id int, args map[string]string) (*Issue, error) {
 	kvs := argsToKeyValues(args)
 
-	url := jsonResourceEndpointByID(c.endpoint, "issues", id)
+	url := jsonResourceEndpointByID(c.endpoint, entityEndpointNameIssues, id)
 	req, err := c.authenticatedGet(url)
 	if err != nil {
 		return nil, errors2.Wrap(err, "error while creating GET request for issue")

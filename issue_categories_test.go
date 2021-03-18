@@ -302,7 +302,7 @@ func TestClient_CreateIssueCategory(t *testing.T) {
 		assert.Equal(t, authPassword, actualAuthPass)
 		assert.True(t, actualBasicAuthOk)
 		assert.Equal(t, httpMethodPost, actualHTTPMethod)
-		assert.Equal(t, "/issue_categories.json", actualCalledURL)
+		assert.Equal(t, "/projects/1/issue_categories.json", actualCalledURL)
 	})
 
 	t.Run("should add auth token to issue category POST request", func(t *testing.T) {
@@ -333,7 +333,7 @@ func TestClient_CreateIssueCategory(t *testing.T) {
 		assert.Empty(t, actualAuthPass)
 		assert.False(t, actualBasicAuthOk)
 		assert.Equal(t, httpMethodPost, actualHTTPMethod)
-		assert.Equal(t, "/issue_categories.json?key=123456789", actualCalledURL)
+		assert.Equal(t, "/projects/1/issue_categories.json?key=123456789", actualCalledURL)
 	})
 
 	t.Run("should handle HTTP 422 errors as error", func(t *testing.T) {

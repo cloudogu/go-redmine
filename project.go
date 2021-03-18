@@ -8,6 +8,8 @@ import (
 	"strings"
 )
 
+const entityEndpointNameProjects = "projects"
+
 type projectRequest struct {
 	Project Project `json:"project"`
 }
@@ -57,7 +59,7 @@ type Project struct {
 
 // Project returns a single project without additional fields.
 func (c *Client) Project(id int) (*Project, error) {
-	url := jsonResourceEndpointByID(c.endpoint, "projects", id)
+	url := jsonResourceEndpointByID(c.endpoint, entityEndpointNameProjects, id)
 	req, err := c.authenticatedGet(url)
 	if err != nil {
 		return nil, errors2.Wrapf(err, "error while creating GET request for project %d ", id)
@@ -86,7 +88,7 @@ func (c *Client) Project(id int) (*Project, error) {
 }
 
 func (c *Client) Projects() ([]Project, error) {
-	url := jsonResourceEndpoint(c.endpoint, "projects")
+	url := jsonResourceEndpoint(c.endpoint, entityEndpointNameProjects)
 	req, err := c.authenticatedGet(url)
 	if err != nil {
 		return nil, errors2.Wrap(err, "error while creating GET request for projects")
@@ -122,7 +124,7 @@ func (c *Client) CreateProject(project Project) (*Project, error) {
 		return nil, err
 	}
 
-	url := jsonResourceEndpoint(c.endpoint, "projects")
+	url := jsonResourceEndpoint(c.endpoint, entityEndpointNameProjects)
 	req, err := c.authenticatedPost(url, strings.NewReader(string(s)))
 	if err != nil {
 		return nil, errors2.Wrapf(err, "error while creating POST request for project %s ", project.Identifier)
@@ -154,7 +156,7 @@ func (c *Client) UpdateProject(project Project) error {
 		return err
 	}
 
-	url := jsonResourceEndpointByID(c.endpoint, "projects", project.Id)
+	url := jsonResourceEndpointByID(c.endpoint, entityEndpointNameProjects, project.Id)
 	req, err := c.authenticatedPut(url, strings.NewReader(string(s)))
 	if err != nil {
 		return errors2.Wrapf(err, "error while creating PUT request for project %d ", project.Id)
@@ -177,7 +179,7 @@ func (c *Client) UpdateProject(project Project) error {
 }
 
 func (c *Client) DeleteProject(id int) error {
-	url := jsonResourceEndpointByID(c.endpoint, "projects", id)
+	url := jsonResourceEndpointByID(c.endpoint, entityEndpointNameProjects, id)
 	req, err := c.authenticatedDelete(url, strings.NewReader(""))
 	if err != nil {
 		return errors2.Wrapf(err, "error while creating DELETE request for project %d ", id)

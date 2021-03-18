@@ -95,28 +95,25 @@ func (c *Client) CreateIssueCategory(issueCategory IssueCategory) (*IssueCategor
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequest(httpMethodPost, c.endpoint+"/issue_categories.json?"+c.apiKeyParameter(), strings.NewReader(string(s)))
+
+	url := jsonResourceEndpoint(c.endpoint, "issue_categories")
+	req, err := c.authenticatedPost(url, strings.NewReader(string(s)))
 	if err != nil {
-		return nil, err
+		return nil, errors2.Wrapf(err, "error while creating POST request for issue category %s ", issueCategory.Name)
 	}
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(httpHeaderContentType, httpContentTypeApplicationJson)
 	res, err := c.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, errors2.Wrapf(err, "could not create issue category %s ", issueCategory.Name)
 	}
 	defer res.Body.Close()
 
-	decoder := json.NewDecoder(res.Body)
 	var r issueCategoryResult
-	if res.StatusCode != 201 {
-		var er errorsResult
-		err = decoder.Decode(&er)
-		if err == nil {
-			err = errors.New(strings.Join(er.Errors, "\n"))
-		}
-	} else {
-		err = decoder.Decode(&r)
+	if !isHTTPStatusSuccessful(res.StatusCode, []int{http.StatusCreated}) {
+		return nil, errors2.Wrapf(decodeHTTPError(res), "error while creating issue category %s", issueCategory.Name)
 	}
+
+	err = json.NewDecoder(res.Body).Decode(&r)
 	if err != nil {
 		return nil, err
 	}

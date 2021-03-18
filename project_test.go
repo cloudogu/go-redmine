@@ -457,7 +457,8 @@ func TestClient_UpdateProject(t *testing.T) {
 
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			actualCalledURL = r.URL.String()
-			_, _ = fmt.Fprintln(w, simpleProjectJSON)
+			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+			w.WriteHeader(http.StatusNoContent)
 		}))
 		defer ts.Close()
 
@@ -552,7 +553,8 @@ func TestClient_DeleteProject(t *testing.T) {
 
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			actualCalledURL = r.URL.String()
-			_, _ = fmt.Fprintln(w, simpleProjectJSON)
+			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+			w.WriteHeader(http.StatusNoContent)
 		}))
 		defer ts.Close()
 

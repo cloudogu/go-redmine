@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - projects
     - issues
     - issue categories
+    - versions
   - Read: issue priorities
 - Add option to skip SSL certificate verification (#4)
 - Under the hood:

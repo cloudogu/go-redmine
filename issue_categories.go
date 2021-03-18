@@ -138,7 +138,7 @@ func (c *Client) UpdateIssueCategory(issueCategory IssueCategory) error {
 		return err
 	}
 
-	url := jsonResourceEndpointByID(c.endpoint, "issue_categories", issueCategory.Id)
+	url := jsonResourceEndpointByID(c.endpoint, entityEndpointNameIssueCategories, issueCategory.Id)
 	req, err := c.authenticatedPut(url, strings.NewReader(string(s)))
 	if err != nil {
 		return errors2.Wrapf(err, "error while creating PUT request for issue category %d ", issueCategory.Id)
@@ -146,7 +146,7 @@ func (c *Client) UpdateIssueCategory(issueCategory IssueCategory) error {
 	req.Header.Set(httpHeaderContentType, httpContentTypeApplicationJson)
 	res, err := c.Do(req)
 	if err != nil {
-		return errors2.Wrapf(err, "could not update project %d ", issueCategory.Id)
+		return errors2.Wrapf(err, "could not update issue category %d ", issueCategory.Id)
 	}
 	defer res.Body.Close()
 
@@ -161,7 +161,7 @@ func (c *Client) UpdateIssueCategory(issueCategory IssueCategory) error {
 }
 
 func (c *Client) DeleteIssueCategory(id int) error {
-	url := jsonResourceEndpointByID(c.endpoint, "issue_categories", id)
+	url := jsonResourceEndpointByID(c.endpoint, entityEndpointNameIssueCategories, id)
 	req, err := c.authenticatedDelete(url, strings.NewReader(""))
 	if err != nil {
 		return errors2.Wrapf(err, "error while creating DELETE request for issue category %d ", id)

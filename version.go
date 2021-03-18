@@ -2,11 +2,13 @@ package redmine
 
 import (
 	"encoding/json"
-	"errors"
+	"fmt"
+	errors2 "github.com/pkg/errors"
 	"net/http"
-	"strconv"
 	"strings"
 )
+
+const entityEndpointNameVersions = "versions"
 
 type versionRequest struct {
 	Version Version `json:"version"`
@@ -33,27 +35,28 @@ type Version struct {
 }
 
 func (c *Client) Version(id int) (*Version, error) {
-	res, err := c.Get(c.endpoint + "/versions/" + strconv.Itoa(id) + ".json?" + c.apiKeyParameter())
+	url := jsonResourceEndpointByID(c.endpoint, entityEndpointNameVersions, id)
+	req, err := c.authenticatedGet(url)
 	if err != nil {
-		return nil, err
+		return nil, errors2.Wrapf(err, "error while creating GET request for version %d ", id)
+	}
+
+	res, err := c.Do(req)
+	if err != nil {
+		return nil, errors2.Wrapf(err, "could not read version %d ", id)
 	}
 	defer res.Body.Close()
 
-	if res.StatusCode == 404 {
-		return nil, errors.New("Not Found")
+	var r versionResult
+	if res.StatusCode == http.StatusNotFound {
+		return nil, fmt.Errorf("version (id: %d) was not found", id)
 	}
 
-	decoder := json.NewDecoder(res.Body)
-	var r versionResult
-	if res.StatusCode != 200 {
-		var er errorsResult
-		err = decoder.Decode(&er)
-		if err == nil {
-			err = errors.New(strings.Join(er.Errors, "\n"))
-		}
-	} else {
-		err = decoder.Decode(&r)
+	if !isHTTPStatusSuccessful(res.StatusCode, []int{http.StatusOK}) {
+		return nil, errors2.Wrapf(decodeHTTPError(res), "error while reading version %d", id)
 	}
+
+	err = json.NewDecoder(res.Body).Decode(&r)
 	if err != nil {
 		return nil, err
 	}
@@ -61,27 +64,29 @@ func (c *Client) Version(id int) (*Version, error) {
 }
 
 func (c *Client) Versions(projectId int) ([]Version, error) {
-	res, err := c.Get(c.endpoint + "/projects/" + strconv.Itoa(projectId) + "/versions.json?" + c.apiKeyParameter() + c.getPaginationClause())
+	compoundEndpointName := fmt.Sprintf("%s/%d/%s", entityEndpointNameProjects, projectId, entityEndpointNameVersions)
+	url := jsonResourceEndpoint(c.endpoint, compoundEndpointName)
+	req, err := c.authenticatedGet(url)
 	if err != nil {
-		return nil, err
+		return nil, errors2.Wrap(err, "error while creating GET request for versions")
+	}
+	err = safelySetQueryParameters(req, c.getPaginationClauseParams())
+	if err != nil {
+		return nil, errors2.Wrap(err, "error while adding pagination parameters to versions")
+	}
+
+	res, err := c.Do(req)
+	if err != nil {
+		return nil, errors2.Wrap(err, "could not read issue_categories")
 	}
 	defer res.Body.Close()
 
-	if res.StatusCode == 404 {
-		return nil, errors.New("Not Found")
+	var r versionsResult
+	if !isHTTPStatusSuccessful(res.StatusCode, []int{http.StatusOK}) {
+		return nil, errors2.Wrap(decodeHTTPError(res), "error while reading versions")
 	}
 
-	decoder := json.NewDecoder(res.Body)
-	var r versionsResult
-	if res.StatusCode != 200 {
-		var er errorsResult
-		err = decoder.Decode(&er)
-		if err == nil {
-			err = errors.New(strings.Join(er.Errors, "\n"))
-		}
-	} else {
-		err = decoder.Decode(&r)
-	}
+	err = json.NewDecoder(res.Body).Decode(&r)
 	if err != nil {
 		return nil, err
 	}
@@ -95,36 +100,30 @@ func (c *Client) CreateVersion(version Version) (*Version, error) {
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequest(httpMethodPost, c.endpoint+"/projects/"+strconv.Itoa(version.Project.Id)+"/versions.json?"+c.apiKeyParameter(), strings.NewReader(string(s)))
+
+	compoundEndpointName := fmt.Sprintf("%s/%d/%s", entityEndpointNameProjects, version.Project.Id, entityEndpointNameVersions)
+	url := jsonResourceEndpoint(c.endpoint, compoundEndpointName)
+	req, err := c.authenticatedPost(url, strings.NewReader(string(s)))
 	if err != nil {
-		return nil, err
+		return nil, errors2.Wrapf(err, "error while creating POST request for version %s ", version.Name)
 	}
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(httpHeaderContentType, httpContentTypeApplicationJson)
 	res, err := c.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, errors2.Wrapf(err, "could not create version %s ", version.Name)
 	}
 	defer res.Body.Close()
 
-	if res.StatusCode == 404 {
-		return nil, errors.New("Not Found")
+	var r versionRequest
+	if !isHTTPStatusSuccessful(res.StatusCode, []int{http.StatusCreated}) {
+		return nil, errors2.Wrapf(decodeHTTPError(res), "error while creating version %s", version.Name)
 	}
 
-	decoder := json.NewDecoder(res.Body)
-	var r versionRequest
-	if res.StatusCode != 201 {
-		var er errorsResult
-		err = decoder.Decode(&er)
-		if err == nil {
-			err = errors.New(strings.Join(er.Errors, "\n"))
-		}
-	} else {
-		err = decoder.Decode(&r)
-	}
+	err = json.NewDecoder(res.Body).Decode(&r)
 	if err != nil {
 		return nil, err
 	}
-	return &r.Version, err
+	return &r.Version, nil
 }
 
 func (c *Client) UpdateVersion(version Version) error {
@@ -134,51 +133,50 @@ func (c *Client) UpdateVersion(version Version) error {
 	if err != nil {
 		return err
 	}
-	req, err := http.NewRequest(httpMethodPut, c.endpoint+"/versions/"+strconv.Itoa(version.Id)+".json?"+c.apiKeyParameter(), strings.NewReader(string(s)))
+
+	url := jsonResourceEndpointByID(c.endpoint, entityEndpointNameVersions, version.Id)
+	req, err := c.authenticatedPut(url, strings.NewReader(string(s)))
 	if err != nil {
-		return err
+		return errors2.Wrapf(err, "error while creating PUT request for version %d ", version.Id)
 	}
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(httpHeaderContentType, httpContentTypeApplicationJson)
 	res, err := c.Do(req)
 	if err != nil {
-		return err
+		return errors2.Wrapf(err, "could not update version %d ", version.Id)
 	}
 	defer res.Body.Close()
 
-	if res.StatusCode == 404 {
-		return errors.New("Not Found")
+	if res.StatusCode == http.StatusNotFound {
+		return fmt.Errorf("could not update version (id: %d) because it was not found", version.Id)
 	}
-	if res.StatusCode != 200 {
-		var er errorsResult
-		err = json.NewDecoder(res.Body).Decode(&er)
-		if err == nil {
-			err = errors.New(strings.Join(er.Errors, "\n"))
-		}
+	if !isHTTPStatusSuccessful(res.StatusCode, []int{http.StatusOK, http.StatusNoContent}) {
+		return errors2.Wrapf(decodeHTTPError(res), "error while updating version %d", version.Id)
 	}
-	return err
+
+	return nil
 }
 
 func (c *Client) DeleteVersion(id int) error {
-	req, err := http.NewRequest(httpMethodDelete, c.endpoint+"/versions/"+strconv.Itoa(id)+".json?"+c.apiKeyParameter(), strings.NewReader(""))
+	url := jsonResourceEndpointByID(c.endpoint, entityEndpointNameVersions, id)
+	req, err := c.authenticatedDelete(url, strings.NewReader(""))
 	if err != nil {
-		return err
+		return errors2.Wrapf(err, "error while creating DELETE request for version %d ", id)
 	}
-	req.Header.Set("Content-Type", "application/json")
+
+	req.Header.Set(httpHeaderContentType, httpContentTypeApplicationJson)
 	res, err := c.Do(req)
 	if err != nil {
-		return err
+		return errors2.Wrapf(err, "could not delete version %d ", id)
 	}
 	defer res.Body.Close()
 
-	if res.StatusCode == 404 {
-		return errors.New("Not Found")
+	if res.StatusCode == http.StatusNotFound {
+		return fmt.Errorf("could not delete version (id: %d) because it was not found", id)
 	}
-	if res.StatusCode != 200 {
-		var er errorsResult
-		err = json.NewDecoder(res.Body).Decode(&er)
-		if err == nil {
-			err = errors.New(strings.Join(er.Errors, "\n"))
-		}
+
+	if !isHTTPStatusSuccessful(res.StatusCode, []int{http.StatusOK, http.StatusNoContent}) {
+		return errors2.Wrapf(decodeHTTPError(res), "error while deleting version %d", id)
 	}
-	return err
+
+	return nil
 }

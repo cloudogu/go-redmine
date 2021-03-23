@@ -85,7 +85,7 @@ Kommandozeilenwerkzeug für Redmine-Zugriffe.
 
 ### Einstellungen
 
-Um das CLI-Tool zu verwenden, sollten eine `settings.json` verwendet werden:
+Um das CLI-Tool zu verwenden, sollte eine `settings.json` verwendet werden:
 
 UNIX:
 

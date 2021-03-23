@@ -103,9 +103,9 @@ Write following:
     	"project": 1 // default project id
     }
 
-If you want switching configuration file, you should use `GODMINE_ENV` environment variable.
-If you set `GODMINE_ENV` to *mine*, godmine use `settings.mine.json` to configuration file.
+If you want to switch configuration file, you should use the `GODMINE_ENV` environment variable.
+If you set `GODMINE_ENV` to *mine*, godmine uses `settings.mine.json` as configuration file.
 
 ## A Note on Redmine versions
 
-`go-redmine` is supposed to be used against more recent versions of Redmine. Projects and issues definitely work with Redmine v4.1.x
+`go-redmine` is supposed to be used with more recent versions of Redmine. Projects and issues definitely work with Redmine v4.1.x

@@ -2,11 +2,13 @@ package redmine
 
 import (
 	"encoding/json"
-	"errors"
+	"fmt"
+	errors2 "github.com/pkg/errors"
 	"net/http"
-	"strconv"
 	"strings"
 )
+
+const entityEndpointNameIssueCategories = "issue_categories"
 
 type issueCategoriesResult struct {
 	IssueCategories []IssueCategory `json:"issue_categories"`
@@ -21,34 +23,45 @@ type issueCategoryRequest struct {
 	IssueCategory IssueCategory `json:"issue_category"`
 }
 
+// IssueCategory is a project specific entity.
 type IssueCategory struct {
-	Id         int    `json:"id"`
-	Project    IdName `json:"project"`
-	Name       string `json:"name"`
+	// Id uniquely identifies an issue category system wide (even though it can only be used inside a single project).
+	// The Id is computed on creation; after that it is a required field.
+	Id int `json:"id"`
+	// Project associates this issue category with a project.
+	// It is a required field (even though only the project's ID will be accounted for during modification requests).
+	Project IdName `json:"project"`
+	// Name contains the human readable value of the issue category. Required field.
+	Name string `json:"name"`
+	// AssignedTo associates this issue category to a user identified by the ID. This user will be automatically assigned
+	// on issue creation with this category. Optional field.
 	AssignedTo IdName `json:"assigned_to"`
 }
 
 func (c *Client) IssueCategories(projectId int) ([]IssueCategory, error) {
-	res, err := c.Get(c.endpoint + "/projects/" + strconv.Itoa(projectId) + "/issue_categories.json?key=" + c.apikey + c.getPaginationClause())
+	compoundEndpointName := fmt.Sprintf("%s/%d/%s", entityEndpointNameProjects, projectId, entityEndpointNameIssueCategories)
+	url := jsonResourceEndpoint(c.endpoint, compoundEndpointName)
+	req, err := c.authenticatedGet(url)
 	if err != nil {
-		return nil, err
+		return nil, errors2.Wrap(err, "error while creating GET request for issue_categories")
+	}
+	err = safelySetQueryParameters(req, c.getPaginationClauseParams())
+	if err != nil {
+		return nil, errors2.Wrap(err, "error while adding pagination parameters to issue_categories")
+	}
+
+	res, err := c.Do(req)
+	if err != nil {
+		return nil, errors2.Wrap(err, "could not read issue_categories")
 	}
 	defer res.Body.Close()
 
-	decoder := json.NewDecoder(res.Body)
 	var r issueCategoriesResult
-	if res.StatusCode == 404 {
-		return nil, errors.New("Not Found")
+	if !isHTTPStatusSuccessful(res.StatusCode, []int{http.StatusOK}) {
+		return nil, errors2.Wrap(decodeHTTPError(res), "error while reading issue_categories")
 	}
-	if res.StatusCode != 200 {
-		var er errorsResult
-		err = decoder.Decode(&er)
-		if err == nil {
-			err = errors.New(strings.Join(er.Errors, "\n"))
-		}
-	} else {
-		err = decoder.Decode(&r)
-	}
+
+	err = json.NewDecoder(res.Body).Decode(&r)
 	if err != nil {
 		return nil, err
 	}
@@ -56,26 +69,28 @@ func (c *Client) IssueCategories(projectId int) ([]IssueCategory, error) {
 }
 
 func (c *Client) IssueCategory(id int) (*IssueCategory, error) {
-	res, err := c.Get(c.endpoint + "/issue_categories/" + strconv.Itoa(id) + ".json?key=" + c.apikey)
+	url := jsonResourceEndpointByID(c.endpoint, entityEndpointNameIssueCategories, id)
+	req, err := c.authenticatedGet(url)
 	if err != nil {
-		return nil, err
+		return nil, errors2.Wrapf(err, "error while creating GET request for issue category %d ", id)
+	}
+
+	res, err := c.Do(req)
+	if err != nil {
+		return nil, errors2.Wrapf(err, "could not read issue category %d ", id)
 	}
 	defer res.Body.Close()
 
-	decoder := json.NewDecoder(res.Body)
 	var r issueCategoryResult
-	if res.StatusCode == 404 {
-		return nil, errors.New("Not Found")
+	if res.StatusCode == http.StatusNotFound {
+		return nil, fmt.Errorf("issue category (id: %d) was not found", id)
 	}
-	if res.StatusCode != 200 {
-		var er errorsResult
-		err = decoder.Decode(&er)
-		if err == nil {
-			err = errors.New(strings.Join(er.Errors, "\n"))
-		}
-	} else {
-		err = decoder.Decode(&r)
+
+	if !isHTTPStatusSuccessful(res.StatusCode, []int{http.StatusOK}) {
+		return nil, errors2.Wrapf(decodeHTTPError(res), "error while reading issue category %d", id)
 	}
+
+	err = json.NewDecoder(res.Body).Decode(&r)
 	if err != nil {
 		return nil, err
 	}
@@ -89,28 +104,26 @@ func (c *Client) CreateIssueCategory(issueCategory IssueCategory) (*IssueCategor
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequest("POST", c.endpoint+"/issue_categories.json?key="+c.apikey, strings.NewReader(string(s)))
+
+	compoundEndpointName := fmt.Sprintf("%s/%d/%s", entityEndpointNameProjects, issueCategory.Project.Id, entityEndpointNameIssueCategories)
+	url := jsonResourceEndpoint(c.endpoint, compoundEndpointName)
+	req, err := c.authenticatedPost(url, strings.NewReader(string(s)))
 	if err != nil {
-		return nil, err
+		return nil, errors2.Wrapf(err, "error while creating POST request for issue category %s ", issueCategory.Name)
 	}
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(httpHeaderContentType, httpContentTypeApplicationJson)
 	res, err := c.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, errors2.Wrapf(err, "could not create issue category %s ", issueCategory.Name)
 	}
 	defer res.Body.Close()
 
-	decoder := json.NewDecoder(res.Body)
 	var r issueCategoryResult
-	if res.StatusCode != 201 {
-		var er errorsResult
-		err = decoder.Decode(&er)
-		if err == nil {
-			err = errors.New(strings.Join(er.Errors, "\n"))
-		}
-	} else {
-		err = decoder.Decode(&r)
+	if !isHTTPStatusSuccessful(res.StatusCode, []int{http.StatusCreated}) {
+		return nil, errors2.Wrapf(decodeHTTPError(res), "error while creating issue category %s", issueCategory.Name)
 	}
+
+	err = json.NewDecoder(res.Body).Decode(&r)
 	if err != nil {
 		return nil, err
 	}
@@ -124,57 +137,50 @@ func (c *Client) UpdateIssueCategory(issueCategory IssueCategory) error {
 	if err != nil {
 		return err
 	}
-	req, err := http.NewRequest("PUT", c.endpoint+"/issue_categories/"+strconv.Itoa(issueCategory.Id)+".json?key="+c.apikey, strings.NewReader(string(s)))
+
+	url := jsonResourceEndpointByID(c.endpoint, entityEndpointNameIssueCategories, issueCategory.Id)
+	req, err := c.authenticatedPut(url, strings.NewReader(string(s)))
 	if err != nil {
-		return err
+		return errors2.Wrapf(err, "error while creating PUT request for issue category %d ", issueCategory.Id)
 	}
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(httpHeaderContentType, httpContentTypeApplicationJson)
 	res, err := c.Do(req)
 	if err != nil {
-		return err
+		return errors2.Wrapf(err, "could not update issue category %d ", issueCategory.Id)
 	}
 	defer res.Body.Close()
 
-	if res.StatusCode == 404 {
-		return errors.New("Not Found")
+	if res.StatusCode == http.StatusNotFound {
+		return fmt.Errorf("could not update issue category (id: %d) because it was not found", issueCategory.Id)
 	}
-	if res.StatusCode != 200 {
-		decoder := json.NewDecoder(res.Body)
-		var er errorsResult
-		err = decoder.Decode(&er)
-		if err == nil {
-			err = errors.New(strings.Join(er.Errors, "\n"))
-		}
+	if !isHTTPStatusSuccessful(res.StatusCode, []int{http.StatusOK, http.StatusNoContent}) {
+		return errors2.Wrapf(decodeHTTPError(res), "error while updating issue category %d", issueCategory.Id)
 	}
-	if err != nil {
-		return err
-	}
-	return err
+
+	return nil
 }
 
 func (c *Client) DeleteIssueCategory(id int) error {
-	req, err := http.NewRequest("DELETE", c.endpoint+"/issue_categories/"+strconv.Itoa(id)+".json?key="+c.apikey, strings.NewReader(""))
+	url := jsonResourceEndpointByID(c.endpoint, entityEndpointNameIssueCategories, id)
+	req, err := c.authenticatedDelete(url, strings.NewReader(""))
 	if err != nil {
-		return err
+		return errors2.Wrapf(err, "error while creating DELETE request for issue category %d ", id)
 	}
-	req.Header.Set("Content-Type", "application/json")
+
+	req.Header.Set(httpHeaderContentType, httpContentTypeApplicationJson)
 	res, err := c.Do(req)
 	if err != nil {
-		return err
+		return errors2.Wrapf(err, "could not delete issue category %d ", id)
 	}
 	defer res.Body.Close()
 
-	if res.StatusCode == 404 {
-		return errors.New("Not Found")
+	if res.StatusCode == http.StatusNotFound {
+		return fmt.Errorf("could not delete issue category (id: %d) because it was not found", id)
 	}
 
-	decoder := json.NewDecoder(res.Body)
-	if res.StatusCode != 200 {
-		var er errorsResult
-		err = decoder.Decode(&er)
-		if err == nil {
-			err = errors.New(strings.Join(er.Errors, "\n"))
-		}
+	if !isHTTPStatusSuccessful(res.StatusCode, []int{http.StatusOK, http.StatusNoContent}) {
+		return errors2.Wrapf(decodeHTTPError(res), "error while deleting issue category %d", id)
 	}
-	return err
+
+	return nil
 }

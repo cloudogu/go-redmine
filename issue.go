@@ -2,12 +2,14 @@ package redmine
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
+	errors2 "github.com/pkg/errors"
 	"net/http"
 	"strconv"
 	"strings"
 )
+
+const entityEndpointNameIssues = "issues"
 
 type issueRequest struct {
 	Issue Issue `json:"issue"`
@@ -89,10 +91,23 @@ type CustomField struct {
 }
 
 func (c *Client) IssuesOf(projectId int) ([]Issue, error) {
-	issues, err := getIssues(c, "/issues.json?project_id="+strconv.Itoa(projectId)+"&key="+c.apikey+c.getPaginationClause())
-
+	url := jsonResourceEndpoint(c.endpoint, entityEndpointNameIssues)
+	req, err := c.authenticatedGet(url)
 	if err != nil {
-		return nil, err
+		return nil, errors2.Wrap(err, "error while creating GET request for issues")
+	}
+	err = safelySetQueryParameter(req, "project_id", strconv.Itoa(projectId))
+	if err != nil {
+		return nil, errors2.Wrap(err, "error while adding additional parameters to issue request")
+	}
+	err = safelySetQueryParameters(req, c.getPaginationClauseParams())
+	if err != nil {
+		return nil, errors2.Wrap(err, "error while adding additional parameters to issue request")
+	}
+
+	issues, err := getPagedIssuesForRequest(c, req)
+	if err != nil {
+		return nil, errors2.Wrapf(err, "error while reading issues for project %d", projectId)
 	}
 
 	return issues, nil
@@ -107,62 +122,103 @@ func (c *Client) IssueWithArgs(id int, args map[string]string) (*Issue, error) {
 }
 
 func (c *Client) IssuesByQuery(queryId int) ([]Issue, error) {
-	issues, err := getIssues(c, "/issues.json?query_id="+strconv.Itoa(queryId)+"&key="+c.apikey+c.getPaginationClause())
-
+	url := jsonResourceEndpoint(c.endpoint, entityEndpointNameIssues)
+	req, err := c.authenticatedGet(url)
 	if err != nil {
-		return nil, err
+		return nil, errors2.Wrap(err, "error while creating GET request for issues")
 	}
+	err = safelySetQueryParameters(req, c.getPaginationClauseParams())
+	if err != nil {
+		return nil, errors2.Wrap(err, "error while adding additional parameters to issue request")
+	}
+	err = safelySetQueryParameter(req, "query_id", strconv.Itoa(queryId))
+	if err != nil {
+		return nil, errors2.Wrap(err, "error while adding query_id parameter to issue request")
+	}
+
+	issues, err := getPagedIssuesForRequest(c, req)
+	if err != nil {
+		return nil, errors2.Wrapf(err, "error while reading issues for query id %d", queryId)
+	}
+
 	return issues, nil
 }
 
 // IssuesByFilter filters issues applying the f criteria
 func (c *Client) IssuesByFilter(f *IssueFilter) ([]Issue, error) {
-	issues, err := getIssues(c, "/issues.json?key="+c.apikey+c.getPaginationClause()+getIssueFilterClause(f))
+	url := jsonResourceEndpoint(c.endpoint, entityEndpointNameIssues)
+	req, err := c.authenticatedGet(url)
 	if err != nil {
-		return nil, err
+		return nil, errors2.Wrap(err, "error while creating GET request for issues")
 	}
+	err = safelySetQueryParameters(req, c.getPaginationClauseParams())
+	if err != nil {
+		return nil, errors2.Wrap(err, "error while adding additional parameters to issue request")
+	}
+	filterClauses := strings.Split(getIssueFilterClause(f), "&")
+	for _, clause := range filterClauses {
+		kv := strings.Split(clause, "=")
+		if len(kv) != 2 {
+			return nil, fmt.Errorf("could not properly split issue filter %s", clause)
+		}
+		err = safelySetQueryParameter(req, kv[0], kv[1])
+		if err != nil {
+			return nil, errors2.Wrap(err, "error while adding query_id parameter to issue request")
+		}
+	}
+
+	issues, err := getPagedIssuesForRequest(c, req)
+	if err != nil {
+		return nil, errors2.Wrapf(err, "error while reading issues by filter %v", f)
+	}
+
 	return issues, nil
 }
 
 func (c *Client) Issues() ([]Issue, error) {
-	issues, err := getIssues(c, "/issues.json?key="+c.apikey+c.getPaginationClause())
-
+	url := jsonResourceEndpoint(c.endpoint, entityEndpointNameIssues)
+	req, err := c.authenticatedGet(url)
 	if err != nil {
-		return nil, err
+		return nil, errors2.Wrap(err, "error while creating GET request for issues")
+	}
+	err = safelySetQueryParameters(req, c.getPaginationClauseParams())
+	if err != nil {
+		return nil, errors2.Wrap(err, "error while adding additional parameters to issue request")
+	}
+
+	issues, err := getPagedIssuesForRequest(c, req)
+	if err != nil {
+		return nil, errors2.Wrap(err, "error while reading issues")
 	}
 
 	return issues, nil
 }
 
 func (c *Client) CreateIssue(issue Issue) (*Issue, error) {
+	url := jsonResourceEndpoint(c.endpoint, entityEndpointNameIssues)
+
 	var ir issueRequest
 	ir.Issue = issue
 	s, err := json.Marshal(ir)
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequest("POST", c.endpoint+"/issues.json?key="+c.apikey, strings.NewReader(string(s)))
+	req, err := c.authenticatedPost(url, strings.NewReader(string(s)))
 	if err != nil {
-		return nil, err
+		return nil, errors2.Wrap(err, "error while creating POST request for issue")
 	}
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(httpHeaderContentType, httpContentTypeApplicationJson)
 	res, err := c.Do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer res.Body.Close()
 
-	decoder := json.NewDecoder(res.Body)
 	var r issueRequest
 	if !isHTTPStatusSuccessful(res.StatusCode, []int{http.StatusCreated}) {
-		var er errorsResult
-		err = decoder.Decode(&er)
-		if err == nil {
-			err = errors.New(strings.Join(er.Errors, "\n"))
-		}
-	} else {
-		err = decoder.Decode(&r)
+		return nil, errors2.Wrapf(decodeHTTPError(res), "error while creating issue %s", issue.Subject)
 	}
+	err = json.NewDecoder(res.Body).Decode(&r)
 	if err != nil {
 		return nil, err
 	}
@@ -170,17 +226,19 @@ func (c *Client) CreateIssue(issue Issue) (*Issue, error) {
 }
 
 func (c *Client) UpdateIssue(issue Issue) error {
+	url := jsonResourceEndpointByID(c.endpoint, entityEndpointNameIssues, issue.Id)
+
 	var ir issueRequest
 	ir.Issue = issue
 	s, err := json.Marshal(ir)
 	if err != nil {
 		return err
 	}
-	req, err := http.NewRequest("PUT", c.endpoint+"/issues/"+strconv.Itoa(issue.Id)+".json?key="+c.apikey, strings.NewReader(string(s)))
+	req, err := c.authenticatedPut(url, strings.NewReader(string(s)))
 	if err != nil {
-		return err
+		return errors2.Wrap(err, "error while creating PUT request for issue")
 	}
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(httpHeaderContentType, httpContentTypeApplicationJson)
 	res, err := c.Do(req)
 	if err != nil {
 		return err
@@ -191,25 +249,19 @@ func (c *Client) UpdateIssue(issue Issue) error {
 		return fmt.Errorf("could not update issue (id: %d) because it was not found", issue.Id)
 	}
 	if !isHTTPStatusSuccessful(res.StatusCode, []int{http.StatusOK, http.StatusNoContent}) {
-		decoder := json.NewDecoder(res.Body)
-		var er errorsResult
-		err = decoder.Decode(&er)
-		if err == nil {
-			err = errors.New(strings.Join(er.Errors, "\n"))
-		}
+		return errors2.Wrapf(decodeHTTPError(res), "error while deleting issue %d", issue.Id)
 	}
-	if err != nil {
-		return err
-	}
-	return err
+
+	return nil
 }
 
 func (c *Client) DeleteIssue(id int) error {
-	req, err := http.NewRequest("DELETE", c.endpoint+"/issues/"+strconv.Itoa(id)+".json?key="+c.apikey, strings.NewReader(""))
+	url := jsonResourceEndpointByID(c.endpoint, entityEndpointNameIssues, id)
+	req, err := c.authenticatedDelete(url, strings.NewReader(""))
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(httpHeaderContentType, httpContentTypeApplicationJson)
 	res, err := c.Do(req)
 	if err != nil {
 		return err
@@ -220,19 +272,15 @@ func (c *Client) DeleteIssue(id int) error {
 		return fmt.Errorf("could not delete issue (id: %d) because it was not found", id)
 	}
 
-	decoder := json.NewDecoder(res.Body)
 	if !isHTTPStatusSuccessful(res.StatusCode, []int{http.StatusOK, http.StatusNoContent}) {
-		var er errorsResult
-		err = decoder.Decode(&er)
-		if err == nil {
-			err = errors.New(strings.Join(er.Errors, "\n"))
-		}
+		return errors2.Wrapf(decodeHTTPError(res), "error while deleting issue %d", id)
 	}
-	return err
+
+	return nil
 }
 
 func (issue *Issue) GetTitle() string {
-	return issue.Tracker.Name + " #" + strconv.Itoa(issue.Id) + ": " + issue.Subject
+	return fmt.Sprintf("%s #%d: %s", issue.Tracker.Name, issue.Id, issue.Subject)
 }
 
 // MarshalJSON marshals issue to JSON.
@@ -296,26 +344,22 @@ func getIssueFilterClause(filter *IssueFilter) string {
 	return clause
 }
 
-func mapConcat(m map[string]string, delimiter string) string {
-	var args []string
-
-	for k, v := range m {
-		args = append(args, k+"="+v)
-	}
-
-	return strings.Join(args, delimiter)
-}
-
 func getOneIssue(c *Client, id int, args map[string]string) (*Issue, error) {
-	url := c.endpoint + "/issues/" + strconv.Itoa(id) + ".json?key=" + c.apikey
+	kvs := argsToKeyValues(args)
 
-	if args != nil {
-		url += "&" + mapConcat(args, "&")
+	url := jsonResourceEndpointByID(c.endpoint, entityEndpointNameIssues, id)
+	req, err := c.authenticatedGet(url)
+	if err != nil {
+		return nil, errors2.Wrap(err, "error while creating GET request for issue")
+	}
+	err = safelySetQueryParameters(req, kvs)
+	if err != nil {
+		return nil, errors2.Wrap(err, "error while adding additional parameters to issue request")
 	}
 
-	res, err := c.Get(url)
+	res, err := c.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, errors2.Wrapf(err, "could not read issue %d ", id)
 	}
 	defer res.Body.Close()
 
@@ -323,55 +367,37 @@ func getOneIssue(c *Client, id int, args map[string]string) (*Issue, error) {
 		return nil, fmt.Errorf("issue (id: %d) was not found", id)
 	}
 
-	decoder := json.NewDecoder(res.Body)
-	var r issueRequest
-	if res.StatusCode != 200 {
-		var er errorsResult
-		err = decoder.Decode(&er)
-		if err == nil {
-			err = errors.New(strings.Join(er.Errors, "\n"))
-		}
-	} else {
-		err = decoder.Decode(&r)
+	if !isHTTPStatusSuccessful(res.StatusCode, []int{http.StatusOK}) {
+		return nil, errors2.Wrapf(decodeHTTPError(res), "error while reading issue %d", id)
 	}
+
+	var r issueResult
+	err = json.NewDecoder(res.Body).Decode(&r)
 	if err != nil {
 		return nil, err
 	}
 	return &r.Issue, nil
 }
 
-func getIssue(c *Client, url string, offset int) (*issuesResult, error) {
-	res, err := c.Get(c.endpoint + url + "&offset=" + strconv.Itoa(offset))
-
-	if err != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
-
-	decoder := json.NewDecoder(res.Body)
-	var r issuesResult
-	if res.StatusCode != 200 {
-		var er errorsResult
-		err = decoder.Decode(&er)
-		if err == nil {
-			err = errors.New(strings.Join(er.Errors, "\n"))
-		}
-	} else {
-		err = decoder.Decode(&r)
-	}
-	if err != nil {
-		return nil, err
+func argsToKeyValues(args map[string]string) []keyValue {
+	if args == nil {
+		return nil
 	}
 
-	return &r, nil
+	kvs := []keyValue{}
+	for key, value := range args {
+		kv := keyValue{key: key, value: value}
+		kvs = append(kvs, kv)
+	}
+	return kvs
 }
 
-func getIssues(c *Client, url string) ([]Issue, error) {
+func getPagedIssuesForRequest(c *Client, req *http.Request) ([]Issue, error) {
 	completed := false
 	var issues []Issue
 
-	for completed == false {
-		r, err := getIssue(c, url, len(issues))
+	for !completed {
+		r, err := getOffsetIssueForRequest(c, req, len(issues))
 
 		if err != nil {
 			return nil, err
@@ -385,4 +411,28 @@ func getIssues(c *Client, url string) ([]Issue, error) {
 	}
 
 	return issues, nil
+}
+
+func getOffsetIssueForRequest(c *Client, req *http.Request, offset int) (*issuesResult, error) {
+	err := safelySetQueryParameter(req, "offset", strconv.Itoa(offset))
+	if err != nil {
+		return nil, errors2.Wrap(err, "error while adding additional parameters to issue request")
+	}
+	res, err := c.Do(req)
+	if err != nil {
+		return nil, errors2.Wrap(err, "error while reading issue response")
+	}
+	defer res.Body.Close()
+
+	var r issuesResult
+	if !isHTTPStatusSuccessful(res.StatusCode, []int{http.StatusOK}) {
+		return nil, errors2.Wrapf(decodeHTTPError(res), "issue request returned non-successfully, URL: %s", req.URL.String())
+	}
+
+	err = json.NewDecoder(res.Body).Decode(&r)
+	if err != nil {
+		return nil, err
+	}
+
+	return &r, nil
 }

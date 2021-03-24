@@ -108,7 +108,7 @@ func (c *Client) CreateWikiPage(projectId int, wikiPage WikiPage) (*WikiPage, er
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequest(httpMethodPut, c.endpoint+"/projects/"+strconv.Itoa(projectId)+"/wiki/"+wikiPage.Title+".json?"+c.apiKeyParameter(), strings.NewReader(string(s)))
+	req, err := http.NewRequest(http.MethodPut, c.endpoint+"/projects/"+strconv.Itoa(projectId)+"/wiki/"+wikiPage.Title+".json?"+c.apiKeyParameter(), strings.NewReader(string(s)))
 	if err != nil {
 		return nil, err
 	}
@@ -143,7 +143,7 @@ func (c *Client) UpdateWikiPage(projectId int, wikiPage WikiPage) error {
 	if err != nil {
 		return err
 	}
-	req, err := http.NewRequest(httpMethodPut, c.endpoint+"/projects/"+strconv.Itoa(projectId)+"/wiki/"+wikiPage.Title+".json?"+c.apiKeyParameter(), strings.NewReader(string(s)))
+	req, err := http.NewRequest(http.MethodPut, c.endpoint+"/projects/"+strconv.Itoa(projectId)+"/wiki/"+wikiPage.Title+".json?"+c.apiKeyParameter(), strings.NewReader(string(s)))
 	if err != nil {
 		return err
 	}
@@ -170,7 +170,7 @@ func (c *Client) UpdateWikiPage(projectId int, wikiPage WikiPage) error {
 
 // DeleteWikiPage deletes the wiki page given by its title irreversibly.
 func (c *Client) DeleteWikiPage(projectId int, title string) error {
-	req, err := http.NewRequest(httpMethodDelete, c.endpoint+"/projects/"+strconv.Itoa(projectId)+"/wiki/"+title+".json?"+c.apiKeyParameter(), strings.NewReader(""))
+	req, err := http.NewRequest(http.MethodDelete, c.endpoint+"/projects/"+strconv.Itoa(projectId)+"/wiki/"+title+".json?"+c.apiKeyParameter(), strings.NewReader(""))
 	if err != nil {
 		return err
 	}

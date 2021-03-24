@@ -127,7 +127,7 @@ func Test_getOneIssue(t *testing.T) {
 
 		// then
 		require.NoError(t, err)
-		assert.Equal(t, httpMethodGet, actualHTTPMethod)
+		assert.Equal(t, http.MethodGet, actualHTTPMethod)
 		assert.Equal(t, 1, actual.Id)
 		assert.Equal(t, "Something should be done", actual.Subject)
 		assert.Equal(t, "In this ticket an **important task** should be done1!\r\n\r\nGo ahead!\r\n\r\n"+"```bash\r\necho -n $PATH\r\n```", actual.Description)
@@ -222,7 +222,7 @@ func TestClient_IssuesOf(t *testing.T) {
 
 		// then
 		require.NoError(t, err)
-		assert.Equal(t, httpMethodGet, actualHTTPMethod)
+		assert.Equal(t, http.MethodGet, actualHTTPMethod)
 		assert.Len(t, actualCalledURLs, 2)
 		assert.Contains(t, actualCalledURLs[0], "/issues.json?")
 		assert.Contains(t, actualCalledURLs[0], "project_id=1")
@@ -327,7 +327,7 @@ func TestClient_Issue(t *testing.T) {
 
 		// then
 		require.NoError(t, err)
-		assert.Equal(t, httpMethodGet, actualHTTPMethod)
+		assert.Equal(t, http.MethodGet, actualHTTPMethod)
 		assert.Equal(t, "/issues/1.json?key="+testAPIToken, actualCalledURL)
 	})
 
@@ -460,7 +460,7 @@ func TestClient_IssueWithArgs(t *testing.T) {
 
 	// then
 	require.NoError(t, err)
-	assert.Equal(t, httpMethodGet, actualHTTPMethod)
+	assert.Equal(t, http.MethodGet, actualHTTPMethod)
 	assert.Contains(t, actualCalledURL, "leKey=leValue")
 	assert.Equal(t, 1, actual.Id)
 	assert.Equal(t, "Something should be done", actual.Subject)
@@ -508,7 +508,7 @@ func TestClient_Issues(t *testing.T) {
 
 		// then
 		require.NoError(t, err)
-		assert.Equal(t, httpMethodGet, actualHTTPMethod)
+		assert.Equal(t, http.MethodGet, actualHTTPMethod)
 		assert.Len(t, actualCalledURLs, 2)
 		assert.Equal(t, "/issues.json?key="+testAPIToken+"&offset=0", actualCalledURLs[0])
 		assert.Equal(t, "/issues.json?key="+testAPIToken+"&offset=1", actualCalledURLs[1])
@@ -653,7 +653,7 @@ func TestClient_CreateIssue(t *testing.T) {
 
 		// then
 		require.NoError(t, err)
-		assert.Equal(t, httpMethodPost, actualHTTPMethod)
+		assert.Equal(t, http.MethodPost, actualHTTPMethod)
 		assert.Equal(t, 1, actual.Id)
 		assert.Equal(t, "Something should be done", actual.Subject)
 		assert.Equal(t, "In this ticket an **important task** should be done1!\r\n\r\nGo ahead!\r\n\r\n"+"```bash\r\necho -n $PATH\r\n```", actual.Description)
@@ -728,7 +728,7 @@ func TestClient_DeleteIssue(t *testing.T) {
 		err := sut.DeleteIssue(1)
 
 		require.NoError(t, err)
-		assert.Equal(t, httpMethodDelete, actualHTTPMethod)
+		assert.Equal(t, http.MethodDelete, actualHTTPMethod)
 		assert.Equal(t, "/issues/1.json?key="+testAPIToken, actualCalledURL)
 	})
 
@@ -840,7 +840,7 @@ func TestClient_UpdateIssue(t *testing.T) {
 		err := sut.UpdateIssue(testIssue)
 
 		require.NoError(t, err)
-		assert.Equal(t, httpMethodPut, actualHTTPMethod)
+		assert.Equal(t, http.MethodPut, actualHTTPMethod)
 		assert.Equal(t, "/issues/1.json?key="+testAPIToken, actualCalledURL)
 	})
 

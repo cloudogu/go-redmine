@@ -117,8 +117,8 @@ func TestsafelySetQueryParameter_requestSafety(t *testing.T) {
 		postReader := strings.NewReader(string(s))
 		expectedReaderLen := postReader.Len()
 
-		sutGET, _ := http.NewRequest(httpMethodGet, "http://1.2.3.4:3030/endpoint?getAddInfo=true", nil)
-		sutPOST, _ := http.NewRequest(httpMethodPost, "http://1.2.3.4:3030/endpoint?doTheThingDifferently", postReader)
+		sutGET, _ := http.NewRequest(http.MethodGet, "http://1.2.3.4:3030/endpoint?getAddInfo=true", nil)
+		sutPOST, _ := http.NewRequest(http.MethodPost, "http://1.2.3.4:3030/endpoint?doTheThingDifferently", postReader)
 
 		// when
 		getErr := safelySetQueryParameter(sutGET, "key", "value")
@@ -126,12 +126,12 @@ func TestsafelySetQueryParameter_requestSafety(t *testing.T) {
 
 		// then
 		require.NoError(t, getErr)
-		assert.Equal(t, httpMethodGet, sutGET.Method)
+		assert.Equal(t, http.MethodGet, sutGET.Method)
 		assert.Nil(t, sutGET.Body)
 		assert.Contains(t, sutGET.URL.String(), "http://1.2.3.4:3030/endpoint?")
 
 		require.NoError(t, postErr)
-		assert.Equal(t, httpMethodPost, sutPOST.Method)
+		assert.Equal(t, http.MethodPost, sutPOST.Method)
 		assert.NotNil(t, postReader)
 		assert.Equal(t, expectedReaderLen, postReader.Len())
 		assert.Contains(t, sutPOST.URL.String(), "http://1.2.3.4:3030/endpoint?")
@@ -208,7 +208,7 @@ func TestClient_getPaginationClauseAsKV(t *testing.T) {
 func reqFromURL(t *testing.T, params string) *http.Request {
 	t.Helper()
 
-	req, err := http.NewRequest(httpMethodGet, "http://1.2.3.4:3030/endpoint"+params, nil)
+	req, err := http.NewRequest(http.MethodGet, "http://1.2.3.4:3030/endpoint"+params, nil)
 	assert.NoError(t, err)
 
 	return req

@@ -101,7 +101,7 @@ func (c *Client) UsersWithFilter(filter *UsersFilter) ([]User, error) {
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequest(httpMethodGet, uri, nil)
+	req, err := http.NewRequest(http.MethodGet, uri, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +159,7 @@ func (c *Client) UserByIdAndFilter(id int, filter *UserByIdFilter) (*User, error
 		return nil, err
 	}
 
-	req, err := http.NewRequest(httpMethodGet, uri, nil)
+	req, err := http.NewRequest(http.MethodGet, uri, nil)
 	if err != nil {
 		return nil, err
 	}

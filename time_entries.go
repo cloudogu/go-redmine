@@ -40,7 +40,7 @@ func (c *Client) TimeEntriesWithFilter(filter Filter) ([]TimeEntry, error) {
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequest(httpMethodGet, uri, nil)
+	req, err := http.NewRequest(http.MethodGet, uri, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -132,7 +132,7 @@ func (c *Client) CreateTimeEntry(timeEntry TimeEntry) (*TimeEntry, error) {
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequest(httpMethodPost, c.endpoint+"/time_entries.json?"+c.apiKeyParameter(), strings.NewReader(string(s)))
+	req, err := http.NewRequest(http.MethodPost, c.endpoint+"/time_entries.json?"+c.apiKeyParameter(), strings.NewReader(string(s)))
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +167,7 @@ func (c *Client) UpdateTimeEntry(timeEntry TimeEntry) error {
 	if err != nil {
 		return err
 	}
-	req, err := http.NewRequest(httpMethodPut, c.endpoint+"/time_entries/"+strconv.Itoa(timeEntry.Id)+".json?"+c.apiKeyParameter(), strings.NewReader(string(s)))
+	req, err := http.NewRequest(http.MethodPut, c.endpoint+"/time_entries/"+strconv.Itoa(timeEntry.Id)+".json?"+c.apiKeyParameter(), strings.NewReader(string(s)))
 	if err != nil {
 		return err
 	}
@@ -196,7 +196,7 @@ func (c *Client) UpdateTimeEntry(timeEntry TimeEntry) error {
 }
 
 func (c *Client) DeleteTimeEntry(id int) error {
-	req, err := http.NewRequest(httpMethodDelete, c.endpoint+"/time_entries/"+strconv.Itoa(id)+".json?"+c.apiKeyParameter(), strings.NewReader(""))
+	req, err := http.NewRequest(http.MethodDelete, c.endpoint+"/time_entries/"+strconv.Itoa(id)+".json?"+c.apiKeyParameter(), strings.NewReader(""))
 	if err != nil {
 		return err
 	}

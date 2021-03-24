@@ -28,13 +28,6 @@ const (
 )
 
 const (
-	httpMethodGet    = "GET"
-	httpMethodPost   = "POST"
-	httpMethodPut    = "PUT"
-	httpMethodDelete = "DELETE"
-)
-
-const (
 	httpHeaderContentType          = "Content-Type"
 	httpContentTypeApplicationJson = "application/json"
 )
@@ -96,18 +89,18 @@ func NewClient(endpoint string, auth APIAuth) (*Client, error) {
 }
 
 func (c *Client) authenticatedGet(urlWithoutAuthInfo string) (req *http.Request, err error) {
-	return c.authenticatedRequest(httpMethodGet, urlWithoutAuthInfo, nil)
+	return c.authenticatedRequest(http.MethodGet, urlWithoutAuthInfo, nil)
 }
 
 func (c *Client) authenticatedPost(urlWithoutAuthInfo string, body io.Reader) (req *http.Request, err error) {
-	return c.authenticatedRequest(httpMethodPost, urlWithoutAuthInfo, body)
+	return c.authenticatedRequest(http.MethodPost, urlWithoutAuthInfo, body)
 }
 
 func (c *Client) authenticatedPut(urlWithoutAuthInfo string, body io.Reader) (req *http.Request, err error) {
-	return c.authenticatedRequest(httpMethodPut, urlWithoutAuthInfo, body)
+	return c.authenticatedRequest(http.MethodPut, urlWithoutAuthInfo, body)
 }
 func (c *Client) authenticatedDelete(urlWithoutAuthInfo string, body io.Reader) (req *http.Request, err error) {
-	return c.authenticatedRequest(httpMethodDelete, urlWithoutAuthInfo, body)
+	return c.authenticatedRequest(http.MethodDelete, urlWithoutAuthInfo, body)
 }
 
 func (c *Client) authenticatedRequest(method string, urlWithoutAuthInfo string, body io.Reader) (req *http.Request, err error) {

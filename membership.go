@@ -89,7 +89,7 @@ func (c *Client) CreateMembership(membership Membership) (*Membership, error) {
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequest(httpMethodPost, c.endpoint+"/memberships.json?"+c.apiKeyParameter(), strings.NewReader(string(s)))
+	req, err := http.NewRequest(http.MethodPost, c.endpoint+"/memberships.json?"+c.apiKeyParameter(), strings.NewReader(string(s)))
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +124,7 @@ func (c *Client) UpdateMembership(membership Membership) error {
 	if err != nil {
 		return err
 	}
-	req, err := http.NewRequest(httpMethodPut, c.endpoint+"/memberships/"+strconv.Itoa(membership.Id)+".json?"+c.apiKeyParameter(), strings.NewReader(string(s)))
+	req, err := http.NewRequest(http.MethodPut, c.endpoint+"/memberships/"+strconv.Itoa(membership.Id)+".json?"+c.apiKeyParameter(), strings.NewReader(string(s)))
 	if err != nil {
 		return err
 	}
@@ -153,7 +153,7 @@ func (c *Client) UpdateMembership(membership Membership) error {
 }
 
 func (c *Client) DeleteMembership(id int) error {
-	req, err := http.NewRequest(httpMethodDelete, c.endpoint+"/memberships/"+strconv.Itoa(id)+".json?"+c.apiKeyParameter(), strings.NewReader(""))
+	req, err := http.NewRequest(http.MethodDelete, c.endpoint+"/memberships/"+strconv.Itoa(id)+".json?"+c.apiKeyParameter(), strings.NewReader(""))
 	if err != nil {
 		return err
 	}

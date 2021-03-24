@@ -66,7 +66,7 @@ func TestClient_IssuePriorities(t *testing.T) {
 
 		// then
 		require.NoError(t, err)
-		assert.Equal(t, httpMethodGet, actualHTTPMethod)
+		assert.Equal(t, http.MethodGet, actualHTTPMethod)
 		expectedIssuePriorities := []IssuePriority{
 			{Id: 1, Name: "Low"},
 			{Id: 2, Name: "Normal", IsDefault: true},

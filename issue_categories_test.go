@@ -64,7 +64,7 @@ func TestClient_IssueCategory(t *testing.T) {
 		assert.Equal(t, authUser, actualAuthUser)
 		assert.Equal(t, authPassword, actualAuthPass)
 		assert.True(t, actualBasicAuthOk)
-		assert.Equal(t, httpMethodGet, actualHTTPMethod)
+		assert.Equal(t, http.MethodGet, actualHTTPMethod)
 		assert.Equal(t, "/issue_categories/1.json", actualCalledURL)
 	})
 
@@ -96,7 +96,7 @@ func TestClient_IssueCategory(t *testing.T) {
 		assert.Empty(t, actualAuthUser)
 		assert.Empty(t, actualAuthPass)
 		assert.False(t, actualBasicAuthOk)
-		assert.Equal(t, httpMethodGet, actualHTTPMethod)
+		assert.Equal(t, http.MethodGet, actualHTTPMethod)
 		assert.Equal(t, "/issue_categories/1.json?key=123456789", actualCalledURL)
 	})
 
@@ -183,7 +183,7 @@ func TestClient_IssueCategories(t *testing.T) {
 		assert.Equal(t, authUser, actualAuthUser)
 		assert.Equal(t, authPassword, actualAuthPass)
 		assert.True(t, actualBasicAuthOk)
-		assert.Equal(t, httpMethodGet, actualHTTPMethod)
+		assert.Equal(t, http.MethodGet, actualHTTPMethod)
 		assert.Equal(t, "/projects/1/issue_categories.json", actualCalledURL)
 	})
 
@@ -215,7 +215,7 @@ func TestClient_IssueCategories(t *testing.T) {
 		assert.Empty(t, actualAuthUser)
 		assert.Empty(t, actualAuthPass)
 		assert.False(t, actualBasicAuthOk)
-		assert.Equal(t, httpMethodGet, actualHTTPMethod)
+		assert.Equal(t, http.MethodGet, actualHTTPMethod)
 		assert.Equal(t, "/projects/1/issue_categories.json?key=123456789", actualCalledURL)
 	})
 
@@ -301,7 +301,7 @@ func TestClient_CreateIssueCategory(t *testing.T) {
 		assert.Equal(t, authUser, actualAuthUser)
 		assert.Equal(t, authPassword, actualAuthPass)
 		assert.True(t, actualBasicAuthOk)
-		assert.Equal(t, httpMethodPost, actualHTTPMethod)
+		assert.Equal(t, http.MethodPost, actualHTTPMethod)
 		assert.Equal(t, "/projects/1/issue_categories.json", actualCalledURL)
 	})
 
@@ -332,7 +332,7 @@ func TestClient_CreateIssueCategory(t *testing.T) {
 		assert.Empty(t, actualAuthUser)
 		assert.Empty(t, actualAuthPass)
 		assert.False(t, actualBasicAuthOk)
-		assert.Equal(t, httpMethodPost, actualHTTPMethod)
+		assert.Equal(t, http.MethodPost, actualHTTPMethod)
 		assert.Equal(t, "/projects/1/issue_categories.json?key=123456789", actualCalledURL)
 	})
 
@@ -415,7 +415,7 @@ func TestClient_UpdateIssueCategory(t *testing.T) {
 		assert.Equal(t, authUser, actualAuthUser)
 		assert.Equal(t, authPassword, actualAuthPass)
 		assert.True(t, actualBasicAuthOk)
-		assert.Equal(t, httpMethodPut, actualHTTPMethod)
+		assert.Equal(t, http.MethodPut, actualHTTPMethod)
 		assert.Equal(t, "/issue_categories/1.json", actualCalledURL)
 	})
 
@@ -445,7 +445,7 @@ func TestClient_UpdateIssueCategory(t *testing.T) {
 		assert.Empty(t, actualAuthUser)
 		assert.Empty(t, actualAuthPass)
 		assert.False(t, actualBasicAuthOk)
-		assert.Equal(t, httpMethodPut, actualHTTPMethod)
+		assert.Equal(t, http.MethodPut, actualHTTPMethod)
 		assert.Equal(t, "/issue_categories/1.json?key=123456789", actualCalledURL)
 	})
 
@@ -526,7 +526,7 @@ func TestClient_DeleteIssueCategory(t *testing.T) {
 		assert.Equal(t, authUser, actualAuthUser)
 		assert.Equal(t, authPassword, actualAuthPass)
 		assert.True(t, actualBasicAuthOk)
-		assert.Equal(t, httpMethodDelete, actualHTTPMethod)
+		assert.Equal(t, http.MethodDelete, actualHTTPMethod)
 		assert.Equal(t, "/issue_categories/1.json", actualCalledURL)
 	})
 
@@ -556,7 +556,7 @@ func TestClient_DeleteIssueCategory(t *testing.T) {
 		assert.Empty(t, actualAuthUser)
 		assert.Empty(t, actualAuthPass)
 		assert.False(t, actualBasicAuthOk)
-		assert.Equal(t, httpMethodDelete, actualHTTPMethod)
+		assert.Equal(t, http.MethodDelete, actualHTTPMethod)
 		assert.Equal(t, "/issue_categories/1.json?key=123456789", actualCalledURL)
 	})
 

@@ -15,7 +15,7 @@ type customFieldsResult struct {
 // CustomFields consulta los campos personalizados
 func (c *Client) CustomFields() ([]CustomField, error) {
 	req, err := http.NewRequest(
-		"GET",
+		http.MethodGet,
 		fmt.Sprintf("%s/custom_fields.json?%s",
 			c.endpoint,
 			c.getPaginationClause()),
@@ -25,7 +25,7 @@ func (c *Client) CustomFields() ([]CustomField, error) {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Redmine-API-Key", c.apikey)
+	req.Header.Set("X-Redmine-API-Key", c.auth.Token)
 
 	res, err := c.Do(req)
 	if err != nil {

@@ -1,2 +1,6 @@
 cmd/godmine/*.exe
 cmd/godmine/godmine
+.idea/
+.code/
+target/
+out/

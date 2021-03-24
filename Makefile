@@ -1,5 +1,5 @@
 ARTIFACT_ID := go-redmine
-VERSION := 0.1.0
+VERSION := 0.2.0
 
 GOTAG=1.14.13
 CUSTOM_GO_MOUNT=-v $(WORKDIR)/resources/compileHeaders/usr/include/btrfs:/usr/include/btrfs

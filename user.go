@@ -3,6 +3,7 @@ package redmine
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -26,6 +27,12 @@ type User struct {
 	LatLoginOn   string         `json:"last_login_on"`
 	Memberships  []Membership   `json:"memberships"`
 	CustomFields []*CustomField `json:"custom_fields,omitempty"`
+}
+
+type Status struct {
+	User struct {
+		Status int `json:"status"`
+	} `json:"user"`
 }
 
 type UsersFilter struct {
@@ -94,6 +101,39 @@ func (c *Client) Users() ([]User, error) {
 		return nil, err
 	}
 	return r.Users, nil
+}
+
+func (c *Client) DeactivatedUser(status Status, userID int) (*Issue, error) {
+	s, err := json.Marshal(status)
+	if err != nil {
+		return nil, err
+	}
+	url := fmt.Sprintf(c.endpoint+"/users/%d.json?key="+c.apikey, userID)
+	req, err := http.NewRequest("PUT", url, strings.NewReader(string(s)))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	res, err := c.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+	decoder := json.NewDecoder(res.Body)
+	var r issueRequest
+	if !isHTTPStatusSuccessful(res.StatusCode, []int{http.StatusCreated}) {
+		var er errorsResult
+		err = decoder.Decode(&er)
+		if err == nil {
+			err = errors.New(strings.Join(er.Errors, "\n"))
+		}
+	} else {
+		err = decoder.Decode(&r)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &r.Issue, nil
 }
 
 func (c *Client) UsersWithFilter(filter *UsersFilter) ([]User, error) {

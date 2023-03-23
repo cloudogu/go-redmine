@@ -1,6 +1,7 @@
 package redmine
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -103,37 +104,36 @@ func (c *Client) Users() ([]User, error) {
 	return r.Users, nil
 }
 
-func (c *Client) DeactivatedUser(status Status, userID int) (*Issue, error) {
+func (c *Client) DeactivatedUser(status Status, userID int) error {
 	s, err := json.Marshal(status)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	url := fmt.Sprintf(c.endpoint+"/users/%d.json?key="+c.apikey, userID)
-	req, err := http.NewRequest("PUT", url, strings.NewReader(string(s)))
+	req, err := http.NewRequest("PUT", url, bytes.NewBuffer(s))
 	if err != nil {
-		return nil, err
+		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
 	res, err := c.Do(req)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer res.Body.Close()
-	decoder := json.NewDecoder(res.Body)
-	var r issueRequest
-	if !isHTTPStatusSuccessful(res.StatusCode, []int{http.StatusCreated}) {
-		var er errorsResult
-		err = decoder.Decode(&er)
-		if err == nil {
-			err = errors.New(strings.Join(er.Errors, "\n"))
+	if res.StatusCode != 204 {
+		decoder := json.NewDecoder(res.Body)
+		if !isHTTPStatusSuccessful(res.StatusCode, []int{http.StatusCreated}) {
+			var er errorsResult
+			err = decoder.Decode(&er)
+			if err == nil {
+				err = errors.New(strings.Join(er.Errors, "\n"))
+			}
 		}
-	} else {
-		err = decoder.Decode(&r)
+		if err != nil {
+			return err
+		}
 	}
-	if err != nil {
-		return nil, err
-	}
-	return &r.Issue, nil
+	return nil
 }
 
 func (c *Client) UsersWithFilter(filter *UsersFilter) ([]User, error) {

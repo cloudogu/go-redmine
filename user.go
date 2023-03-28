@@ -104,7 +104,7 @@ func (c *Client) Users() ([]User, error) {
 	return r.Users, nil
 }
 
-func (c *Client) DeactivatedUser(status Status, userID int) error {
+func (c *Client) SetUserStatus(status Status, userID int) error {
 	s, err := json.Marshal(status)
 	if err != nil {
 		return err

@@ -1,8 +1,10 @@
 package redmine
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -26,6 +28,13 @@ type Membership struct {
 	User    IdName   `json:"user"`
 	Roles   []IdName `json:"roles"`
 	Groups  []IdName `json:"groups"`
+}
+
+type MembershipDTO struct {
+	Membership struct {
+		UserId  int   `json:"user_id"`
+		RoleIds []int `json:"role_ids"`
+	} `json:"membership"`
 }
 
 func (c *Client) Memberships(projectId int) ([]Membership, error) {
@@ -68,6 +77,40 @@ func (c *Client) Membership(id int) (*Membership, error) {
 		return nil, errors.New("Not Found")
 	}
 	if res.StatusCode != 200 {
+		var er errorsResult
+		err = decoder.Decode(&er)
+		if err == nil {
+			err = errors.New(strings.Join(er.Errors, "\n"))
+		}
+	} else {
+		err = decoder.Decode(&r)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &r.Membership, nil
+}
+
+func (c *Client) CreateMembershipByProjectID(membership MembershipDTO, projectID int) (*Membership, error) {
+	s, err := json.Marshal(membership)
+	if err != nil {
+		return nil, err
+	}
+	url := fmt.Sprintf(c.endpoint+"/projects/%d/memberships.json?key="+c.apikey, projectID)
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(s))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	res, err := c.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	decoder := json.NewDecoder(res.Body)
+	var r membershipRequest
+	if res.StatusCode != 201 {
 		var er errorsResult
 		err = decoder.Decode(&er)
 		if err == nil {

@@ -1,4 +1,4 @@
-module github.com/cloudogu/sos-redmine
+module github.com/cloudogu/go-redmine
 
 go 1.13
 

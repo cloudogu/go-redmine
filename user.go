@@ -130,7 +130,12 @@ func (c *Client) UsersWithFilter(filter *UsersFilter) ([]User, error) {
 }
 
 func (c *Client) User(id int) (*User, error) {
-	res, err := c.Get(c.endpoint + "/users/" + strconv.Itoa(id) + ".json?key=" + c.apikey)
+	userId := "current"
+	if id > 0 {
+		userId = strconv.Itoa(id)
+	}
+
+	res, err := c.Get(c.endpoint + "/users/" + userId + ".json?key=" + c.apikey)
 	if err != nil {
 		return nil, err
 	}

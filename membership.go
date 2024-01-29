@@ -92,7 +92,13 @@ func (c *Client) Membership(id int) (*Membership, error) {
 }
 
 func (c *Client) CreateMembershipByProjectID(membership MembershipDTO, projectID int) (*Membership, error) {
-
+	project, err := c.Project(projectID)
+	if err != nil {
+		return nil, err
+	}
+	if project.Status == 5 {
+		return nil, nil
+	}
 	s, err := json.Marshal(membership)
 	if err != nil {
 		return nil, err
@@ -127,13 +133,7 @@ func (c *Client) CreateMembershipByProjectID(membership MembershipDTO, projectID
 }
 
 func (c *Client) CreateMembership(membership Membership) (*Membership, error) {
-	project, err := c.Project(membership.Project.Id)
-	if err != nil {
-		return nil, err
-	}
-	if project.Status == 5 {
-		return nil, nil
-	}
+
 	var ir membershipRequest
 	ir.Membership = membership
 	s, err := json.Marshal(ir)

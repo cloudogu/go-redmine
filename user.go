@@ -30,6 +30,10 @@ type User struct {
 	CustomFields []*CustomField `json:"custom_fields,omitempty"`
 }
 
+type totalcount struct {
+	TotalCount int `json:"total_count"`
+}
+
 type Status struct {
 	User struct {
 		Status int `json:"status"`
@@ -102,6 +106,49 @@ func (c *Client) Users() ([]User, error) {
 		return nil, err
 	}
 	return r.Users, nil
+}
+
+func (c *Client) totalCount() (int, error) {
+	res, err := c.Get(c.endpoint + "/users.json?key=" + c.apikey + c.getPaginationClause())
+	if err != nil {
+		return 0, err
+	}
+	defer res.Body.Close()
+	decoder := json.NewDecoder(res.Body)
+	var r totalcount
+	if res.StatusCode != 200 {
+		var er errorsResult
+		err = decoder.Decode(&er)
+		if err == nil {
+			err = errors.New(strings.Join(er.Errors, "\n"))
+		}
+	} else {
+		err = decoder.Decode(&r)
+
+	}
+	if err != nil {
+		return 0, err
+	}
+	return r.TotalCount, nil
+}
+
+func (c *Client) AllUsers() ([]User, error) {
+	count, err := c.totalCount()
+	if err != nil {
+		return nil, err
+	}
+	var allUsers []User
+	c.Limit = 100
+	for i := 0; i < count; i = i + 100 {
+		c.Offset = i
+		users, err := c.Users()
+		if err != nil {
+			return nil, err
+		}
+		allUsers = append(allUsers, users...)
+	}
+	c.Offset = 0
+	return allUsers, nil
 }
 
 func (c *Client) SetUserStatus(status Status, userID int) error {

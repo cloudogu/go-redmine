@@ -54,6 +54,8 @@ type Project struct {
 	CreatedOn string `json:"created_on"`
 	// UpdatedOn contains the timestamp of when the project was last updated.
 	UpdatedOn string `json:"updated_on"`
+
+	Status int `json:"status,omitempty"`
 }
 
 // Project returns a single project without additional fields.

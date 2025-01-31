@@ -4,8 +4,10 @@ import (
 	"testing"
 )
 
+const REDMINE_TEST_ENDPOINT = "https://placeholder.com/redmine"
+
 func TestClient_SetUserStatus(t *testing.T) {
-	c := NewClient("https://ecosystem.cloudogu.com/redmine", "")
+	c := NewClient(REDMINE_TEST_ENDPOINT, "")
 	statue := Status{}
 	statue.User.Status = 3
 	err := c.SetUserStatus(statue, 304)
@@ -15,7 +17,7 @@ func TestClient_SetUserStatus(t *testing.T) {
 }
 
 func TestClient_GetAllUser(t *testing.T) {
-	c := NewClient("https://ecosystem.cloudogu.com/redmine", "")
+	c := NewClient(REDMINE_TEST_ENDPOINT, "")
 	statue := Status{}
 	statue.User.Status = 3
 	Users, err := c.AllUsers()
@@ -26,7 +28,7 @@ func TestClient_GetAllUser(t *testing.T) {
 }
 
 func TestClient_GetTotalCount(t *testing.T) {
-	c := NewClient("https://ecosystem.cloudogu.com/redmine", "")
+	c := NewClient(REDMINE_TEST_ENDPOINT, "")
 	statue := Status{}
 	statue.User.Status = 3
 	num, err := c.totalCount()
